@@ -49,15 +49,18 @@ saveFolder = 'matches'
 
 try:
     os.stat(saveFolder)
-    list_of_files = glob.glob(saveFolder + '/*.json')
-    latest_file = max(list_of_files, key=os.path.getctime)
+    try:
+        list_of_files = glob.glob(saveFolder + '/*.json')
+        latest_file = max(list_of_files, key=os.path.getctime)
 
-    lastMatch = int(latest_file[len(saveFolder) + 1:-(len('json') + 1)])
-    print 'Found last saved match {}'.format(lastMatch)
-    if firstMatch < lastMatch:
-        print 'Overriding first match from {} to {}'.format(
-            firstMatch, lastMatch)
-        firstMatch = lastMatch
+        lastMatch = int(latest_file[len(saveFolder) + 1:-(len('json') + 1)])
+        print 'Found last saved match {}'.format(lastMatch)
+        if firstMatch < lastMatch:
+            print 'Overriding first match from {} to {}'.format(
+                firstMatch, lastMatch)
+            firstMatch = lastMatch
+    except:
+        print "Unexpected error:", sys.exc_info()[0]
 except:
     os.mkdir(saveFolder)
 
