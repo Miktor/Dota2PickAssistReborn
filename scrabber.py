@@ -25,7 +25,13 @@ def query_matches(starting_match_id, min_mmr):
             'Quering match from mmr %d, min match id = %d, string = %s', min_mmr,
             starting_match_id, query)
 
-        response = urllib.request.urlopen(query)
+        while True:
+            response = urllib.request.urlopen(query)
+            if response.code is not 200:
+                logging.warning(
+                    'Failed to query, return code = %d', response.code)
+            else:
+                break
 
         data = json.loads(response.read())
 
@@ -48,7 +54,13 @@ def query_match(match_id):
         query = "https://api.opendota.com/api/matches/{}".format(match_id)
         logging.debug('Quering match %d, string = %s', match_id, query)
 
-        response = urllib.request.urlopen(query)
+        while True:
+            response = urllib.request.urlopen(query)
+            if response.code is not 200:
+                logging.warning(
+                    'Failed to query, return code = %d', response.code)
+            else:
+                break
 
         data = json.loads(response.read())
         return data
