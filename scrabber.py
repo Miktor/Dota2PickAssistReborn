@@ -99,8 +99,10 @@ def main():
         logging.info('Creating folder \'%s\'', save_folder)
         os.mkdir(save_folder)
 
+    current_match = first_match
     while True:
-        for match in query_matches(first_match, 4000):
+        queried_matches = query_matches(current_match, 4000)
+        for match in queried_matches:
             try:
                 logging.debug('Quering match %u', match)
                 match_data = query_match(match)
@@ -117,6 +119,7 @@ def main():
                 time.sleep(0.4)
             except Exception as e:
                 logging.exception('Failed to parse match info')
+        current_match = queried_matches[-1]
 
 
 if __name__ == '__main__':
