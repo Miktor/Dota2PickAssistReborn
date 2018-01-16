@@ -7,6 +7,7 @@ import os
 def reparse(data):
     try:
         if data['human_players'] is not 10:
+            logging.exception('human_players = %d', data['human_players'])
             return
 
         packed = {'match_id': data['match_id'],
