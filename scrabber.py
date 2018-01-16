@@ -13,10 +13,10 @@ import urllib.parse
 def query_matches(starting_match_id, min_mmr):
     try:
         sql_query = ("select * from public_matches "
-                    "where avg_mmr >= {0} and match_id > {1} "
-                    "and lobby_type = 7 and game_mode in (2, 22) "
-                    "ORDER BY start_time asc "
-                    "limit 100")
+                     "where avg_mmr >= {0} and match_id > {1} "
+                     "and lobby_type = 7 and game_mode in (2, 22) "
+                     "ORDER BY start_time asc "
+                     "limit 100")
 
         query = "https://api.opendota.com/api/explorer?sql=" + urllib.parse.quote(
             sql_query.format(min_mmr, starting_match_id))
@@ -39,7 +39,7 @@ def query_matches(starting_match_id, min_mmr):
                 str(datetime.datetime.fromtimestamp(row['start_time'])))
         return matches
     except Exception as e:
-        logging.exception('Failed to enumerate files')
+        logging.exception('Failed to query match info')
         return []
 
 
@@ -53,7 +53,7 @@ def query_match(match_id):
         data = json.loads(response.read())
         return data
     except Exception as e:
-        logging.exception('Failed to enumerate files')
+        logging.exception('Failed to query matches')
 
 
 def main():
@@ -102,7 +102,7 @@ def main():
                     logging.debug('saved match %d to %s', match, file_path)
                 time.sleep(0.25)
             except Exception as e:
-                logging.exception('Failed to enumerate files')
+                logging.exception('Failed to parse match info')
 
 
 if __name__ == '__main__':
