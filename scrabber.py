@@ -30,6 +30,8 @@ def query_matches(starting_match_id, min_mmr):
             if response.code is not 200:
                 logging.warning(
                     'Failed to query, return code = %d', response.code)
+                time.sleep(5)
+                logging.warning('Retrying')
             else:
                 break
 
@@ -112,7 +114,7 @@ def main():
                         indent=4,
                         separators=(',', ': '))
                     logging.debug('saved match %d to %s', match, file_path)
-                time.sleep(0.25)
+                time.sleep(0.4)
             except Exception as e:
                 logging.exception('Failed to parse match info')
 
