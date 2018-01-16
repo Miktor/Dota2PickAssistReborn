@@ -33,7 +33,7 @@ def query_matches(starting_match_id, min_mmr):
             else:
                 break
 
-        data = json.loads(response.read())
+        data = json.loads(response.read().decode("utf-8"))
 
         rows = data['rows']
         matches = []
@@ -62,7 +62,7 @@ def query_match(match_id):
             else:
                 break
 
-        data = json.loads(response.read())
+        data = json.loads(response.read().decode("utf-8"))
         return data
     except Exception as e:
         logging.exception('Failed to query matches')
