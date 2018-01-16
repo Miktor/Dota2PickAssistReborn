@@ -1,9 +1,10 @@
 import json
 import numpy as np
 import tensorflow as tf
+from typing import List
 
 from model.pick_prediction_model import PickPredictionModel
-from model.heroes import encode_hero, NUM_HEROES, load_heroes
+from model.heroes import encode_hero, NUM_HEROES, load_heroes, Hero
 
 PACKED_FILE = 'packed.json'
 
@@ -16,6 +17,15 @@ def read(path=PACKED_FILE):
 RADIANT = 0
 DIRE = 1
 BATCH_SIZE = 256
+
+
+def encode_pick(radiant: List[Hero], dire: List[Hero]):
+    pick = np.zeros([2, NUM_HEROES], dtype=np.float32)
+    for hero in radiant:
+        pick[RADIANT, encode_hero(hero.value)] = 1
+    for hero in dire:
+        pick[DIRE, encode_hero(hero.value)] = 1
+    return pick
 
 
 def to_training_data(data):
@@ -42,21 +52,18 @@ def to_training_data(data):
 
 
 def main():
-    data = load_heroes()
+    pick1 = encode_pick([Hero.Sven, Hero.Invoker, Hero.ShadowShaman, Hero.Pudge, Hero.Brewmaster],
+                       [Hero.PhantomAssassin, Hero.Windranger, Hero.Rubick, Hero.QueenofPain, Hero.Tusk])
 
-    #radiant = ['Zeus', 'Spectre', 'Venge', '']
-    # 5 - CM
-    # 67 - spectre
-    # 81 - chaos
-    # 103 - elder
-    radiant = [22, 20, 96, 81, 5]
-    dire = [59, 111, 85, 61, 47]
+    pick2 = encode_pick([Hero.PhantomAssassin, Hero.Windranger, Hero.Rubick, Hero.QueenofPain, Hero.Tusk],
+                       [Hero.Sven, Hero.Invoker, Hero.ShadowShaman, Hero.Pudge, Hero.Brewmaster])
 
-    pick = np.zeros([2, NUM_HEROES], dtype=np.float32)
-    for hero_id in radiant:
-        pick[RADIANT, encode_hero(hero_id)] = 1
-    for hero_id in dire:
-        pick[DIRE, encode_hero(hero_id)] = 1
+    pick3 = encode_pick([Hero.NightStalker, Hero.LegionCommander, Hero.DragonKnight, Hero.PhantomLancer, Hero.ShadowShaman],
+                        [Hero.QueenofPain, Hero.Juggernaut, Hero.Earthshaker, Hero.Riki, Hero.SandKing])
+
+    pick4 = encode_pick(
+        [Hero.QueenofPain, Hero.Juggernaut, Hero.Earthshaker, Hero.Riki, Hero.SandKing],
+        [Hero.NightStalker, Hero.LegionCommander, Hero.DragonKnight, Hero.PhantomLancer, Hero.ShadowShaman])
 
     picks, results = to_training_data(read())
 
@@ -66,7 +73,6 @@ def main():
         sess.run(tf.global_variables_initializer())
 
         model.load_if_exists(sess)
-        print(model.predict(sess, [pick]))
 
         epoch = 0
         while True:
@@ -77,14 +83,14 @@ def main():
             loss = model.train(sess, batch_picks, batch_results)
             print('{0} Loss: {1}'.format(epoch, loss))
 
-            if loss < 0.01:
+            if loss < 0.1:
                 print('Loss is too small, finished training')
                 model.save(sess)
                 break
 
             epoch += 1
 
-        print(model.predict(sess, [pick]))
+        print(model.predict(sess, [pick3, pick4]))
 
 
 if __name__ == '__main__':
