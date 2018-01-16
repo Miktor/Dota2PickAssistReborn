@@ -5,6 +5,7 @@ import sys
 import glob
 import time
 import logging
+import logging.config
 import urllib.request
 import urllib.parse
 
@@ -59,10 +60,9 @@ def main():
     firstMatch = 3534655441
     saveFolder = 'matches'
 
-    logging.basicConfig(
-        format=u'%(levelname)-8s [%(asctime)s] %(message)s',
-        level=logging.DEBUG,
-        filename=u'scrabber.log')
+    with open('logging.json', 'rt') as configFile:
+        config = json.load(configFile)
+        logging.config.dictConfig(config)
 
     logging.info('Start')
 
@@ -72,7 +72,8 @@ def main():
             list_of_files = glob.glob(saveFolder + '/*.json')
             latest_file = max(list_of_files, key=os.path.getctime)
 
-            lastMatch = int(latest_file[len(saveFolder) + 1:-(len('json') + 1)])
+            lastMatch = int(
+                latest_file[len(saveFolder) + 1:-(len('json') + 1)])
             logging.info('Found last saved match %u', lastMatch)
             if firstMatch < lastMatch:
                 logging.warning('Overriding first match from %u to %u',
