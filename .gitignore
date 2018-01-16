@@ -114,3 +114,4 @@ ENV/
 
 # Idea
 .idea/*
+packed.json
