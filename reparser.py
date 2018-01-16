@@ -3,6 +3,9 @@ import json
 import glob
 import os
 
+MATCHES_FOLDER = 'D:\matches\matches\matches'
+SAVE_FILE = 'packed.json'
+
 
 def reparse(data):
     try:
@@ -29,11 +32,8 @@ def reparse(data):
 
 
 def main():
-    SAVE_FOLDER = 'matches'
-    SAVE_FILE = 'packed.json'
-
     try:
-        list_of_files = glob.glob(SAVE_FOLDER + '/*.json')
+        list_of_files = glob.glob(MATCHES_FOLDER + '/*.json')
         latest_file = max(list_of_files, key=os.path.getctime)
 
         logging.info('Found %u files', len(list_of_files))
