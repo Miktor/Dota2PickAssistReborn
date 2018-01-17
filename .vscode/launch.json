@@ -8,15 +8,33 @@
             "name": "Python",
             "type": "python",
             "request": "launch",
-            "stopOnEntry": true,
+            "stopOnEntry": false,
             "pythonPath": "${config:python.pythonPath}",
             "program": "${file}",
-            "cwd": "${workspaceFolder}",
+            "cwd": "",
             "env": {},
             "envFile": "${workspaceFolder}/.env",
             "debugOptions": [
                 "RedirectOutput"
             ]
+        },
+        {
+            "name": "Python profile",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": true,
+            "pythonPath": "${config:python.pythonPath}",
+            "program": "${file}",
+            "args": [
+                "-m",
+                "cProfile",
+                "${file}"
+            ],
+            "cwd": "",
+            "console": "integratedTerminal",
+            "env": {},
+            "envFile": "${workspaceFolder}/.env",
+            "debugOptions": []
         },
         {
             "name": "Python: Attach",
