@@ -11,8 +11,10 @@
             "stopOnEntry": false,
             "pythonPath": "${config:python.pythonPath}",
             "program": "${file}",
-            "cwd": "",
-            "env": {},
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceRoot}"
+            },
             "envFile": "${workspaceFolder}/.env",
             "debugOptions": [
                 "RedirectOutput"

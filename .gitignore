@@ -11,7 +11,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 .vscode
-model/data/raw/
+data/raw/
 env/
 build/
 develop-eggs/
