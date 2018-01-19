@@ -2,6 +2,7 @@ import json
 import numpy as np
 import tensorflow as tf
 from typing import List
+from random import shuffle
 
 from model.pick_prediction_model import PickPredictionModel
 from model.heroes import encode_hero, NUM_HEROES, load_heroes, Hero
@@ -22,8 +23,8 @@ LANE_ROLE_ROW = 3
 ROAM_ROW = 4
 
 BATCH_SIZE = 256
-INPUT_PARAMETER_PER_HERO = 2
-MODEL_OUTPUTS = 2 + 1 + 1 + 1  # side, lane, role, roam
+INPUT_PARAMETER_PER_HERO = 2  # 1 + 1 + 1  # side, lane, role, roam
+MODEL_OUTPUTS = 2  # side
 
 
 def encode_pick(radiant: List[Hero], dire: List[Hero]):
@@ -37,10 +38,8 @@ def encode_pick(radiant: List[Hero], dire: List[Hero]):
 
 def to_training_data(data):
     num_samples = len(data)
-    training_heroes = np.zeros(
-        shape=[num_samples, INPUT_PARAMETER_PER_HERO, NUM_HEROES], dtype=np.uint8)
-    training_results = np.zeros(
-        shape=[num_samples, MODEL_OUTPUTS], dtype=np.float32)
+    training_heroes = np.zeros(shape=[num_samples, INPUT_PARAMETER_PER_HERO, NUM_HEROES], dtype=np.uint8)
+    training_results = np.zeros(shape=[num_samples, MODEL_OUTPUTS], dtype=np.float32)
 
     for i, sample in enumerate(data):
         for hero in sample['heroes']:
@@ -61,9 +60,9 @@ def to_training_data(data):
             else:
                 training_results[i, DIRE] = 1.0
 
-            training_results[i, LANE_ROW] = lane
-            training_results[i, LANE_ROLE_ROW] = lane_role
-            training_results[i, ROAM_ROW] = roaming
+            # training_results[i, LANE_ROW] = lane
+            # training_results[i, LANE_ROLE_ROW] = lane_role
+            # training_results[i, ROAM_ROW] = roaming
 
             hero_index = encode_hero(hero_id=hero['hero_id'])
             training_heroes[i, row, hero_index] = 1
@@ -71,30 +70,41 @@ def to_training_data(data):
     return training_heroes, training_results
 
 
+def test_pick_both_sides(sess, model, pick):
+    encoded_pick = encode_pick(pick[0], pick[1])
+    picks_to_predict = [encoded_pick, np.flip(encoded_pick, 1)]
+    print('radiant - {}'.format(pick[0]))
+    print('dire - {}'.format(pick[1]))
+    print(model.predict(sess, picks_to_predict))
+
+
+def test_nn(sess, model):
+    pick1 = [[Hero.Sven, Hero.Invoker, Hero.ShadowShaman, Hero.Pudge, Hero.Brewmaster],
+             [Hero.PhantomAssassin, Hero.Windranger, Hero.Rubick, Hero.QueenofPain, Hero.Tusk]]
+
+    pick2 = [[Hero.NightStalker, Hero.LegionCommander, Hero.DragonKnight, Hero.PhantomLancer, Hero.ShadowShaman],
+             [Hero.QueenofPain, Hero.Juggernaut, Hero.Earthshaker, Hero.Riki, Hero.SandKing]]
+
+    pick3 = [[Hero.QueenofPain, Hero.Juggernaut, Hero.Earthshaker, Hero.Riki, Hero.SandKing],
+             [Hero.NightStalker, Hero.LegionCommander, Hero.DragonKnight, Hero.PhantomLancer, Hero.ShadowShaman]]
+
+    test_pick_both_sides(sess, model, pick1)
+    test_pick_both_sides(sess, model, pick2)
+    test_pick_both_sides(sess, model, pick3)
+
+
 def main():
-    pick1 = encode_pick([Hero.Sven, Hero.Invoker, Hero.ShadowShaman, Hero.Pudge, Hero.Brewmaster],
-                        [Hero.PhantomAssassin, Hero.Windranger, Hero.Rubick, Hero.QueenofPain, Hero.Tusk])
-
-    pick2 = encode_pick([Hero.PhantomAssassin, Hero.Windranger, Hero.Rubick, Hero.QueenofPain, Hero.Tusk],
-                        [Hero.Sven, Hero.Invoker, Hero.ShadowShaman, Hero.Pudge, Hero.Brewmaster])
-
-    pick3 = encode_pick([Hero.NightStalker, Hero.LegionCommander, Hero.DragonKnight, Hero.PhantomLancer, Hero.ShadowShaman],
-                        [Hero.QueenofPain, Hero.Juggernaut, Hero.Earthshaker, Hero.Riki, Hero.SandKing])
-
-    pick4 = encode_pick(
-        [Hero.QueenofPain, Hero.Juggernaut,
-            Hero.Earthshaker, Hero.Riki, Hero.SandKing],
-        [Hero.NightStalker, Hero.LegionCommander, Hero.DragonKnight, Hero.PhantomLancer, Hero.ShadowShaman])
-
     picks, results = to_training_data(read())
 
-    model = PickPredictionModel(
-        (INPUT_PARAMETER_PER_HERO, NUM_HEROES), MODEL_OUTPUTS)
+    model = PickPredictionModel(0.1, (INPUT_PARAMETER_PER_HERO, NUM_HEROES), MODEL_OUTPUTS)
 
     with tf.Session() as sess:
+
         sess.run(tf.global_variables_initializer())
 
-        model.load_if_exists(sess)
+        train_writer = tf.summary.FileWriter("C:\Development\logs", graph=tf.get_default_graph())
+
+        # model.load_if_exists(sess)
 
         epoch = 0
         while True:
@@ -107,12 +117,12 @@ def main():
 
             if loss < 0.1:
                 print('Loss is too small, finished training')
-                model.save(sess)
+                # model.save(sess)
                 break
 
             epoch += 1
 
-        print(model.predict(sess, [pick3, pick4]))
+        test_nn(sess, model)
 
 
 if __name__ == '__main__':
