@@ -3,11 +3,11 @@ import os
 
 MODEL_PATH = './trained-model/pick_prediction'
 LEARNING_RATE = 1e-4
+L2_BETA = 0.001
 
 
 class PickPredictionModel(object):
-
-    def __init__(self, regularizer_scale, input_shape, outputs):
+    def __init__(self, input_shape, outputs):
         with tf.variable_scope('Inputs'):
             self.picks = tf.placeholder(
                 dtype=tf.float32, shape=[
@@ -21,19 +21,19 @@ class PickPredictionModel(object):
                 net,
                 512,
                 activation_fn=tf.nn.relu,
-                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=regularizer_scale))
+                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
             net = tf.contrib.layers.fully_connected(
                 net,
                 512,
                 activation_fn=tf.nn.relu,
-                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=regularizer_scale))
+                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
 
         with tf.variable_scope('Head'):
             net = tf.contrib.layers.fully_connected(
                 net,
                 outputs,
                 activation_fn=tf.nn.relu,
-                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=regularizer_scale))
+                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
             self.predictions = tf.contrib.layers.fully_connected(net, outputs, activation_fn=tf.nn.softmax)
 
         with tf.variable_scope('Optimization'):

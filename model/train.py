@@ -96,7 +96,7 @@ def test_nn(sess, model):
 def main():
     picks, results = to_training_data(read())
 
-    model = PickPredictionModel(0.1, (INPUT_PARAMETER_PER_HERO, NUM_HEROES), MODEL_OUTPUTS)
+    model = PickPredictionModel(input_shape=(INPUT_PARAMETER_PER_HERO, NUM_HEROES), outputs=MODEL_OUTPUTS)
 
     with tf.Session() as sess:
 
