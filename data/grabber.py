@@ -133,11 +133,16 @@ def main(first_match: int, save_folder: str, min_mmr: int, requester_delay: int)
         for match_info in queried_matches:
             try:
                 match_id = match_info['match_id']
+                file_path = os.path.join(save_folder, str(match_id) + '.json')
+
+                if os.path.exists(file_path):
+                    logging.info('Skipping match %d. It is already saved to: %s', match_id, file_path)
+                    continue
+
                 logging.debug('Quering match %u', match_id)
                 match_data = requester.query_match(match_id)
                 match_data.update(match_info['user_info'])
 
-                file_path = save_folder + '/' + str(match_id) + '.json'
                 with open(file_path, 'w') as outfile:
                     json.dump(
                         match_data,
