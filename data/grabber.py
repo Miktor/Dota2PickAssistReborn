@@ -113,12 +113,11 @@ def main(first_match: int, save_folder: str, min_mmr: int, requester_delay: int)
             list_of_files = glob.glob(save_folder + '/*.json')
             latest_file = max(list_of_files, key=os.path.getctime)
 
-            last_match = int(
-                latest_file[len(save_folder) + 1:-(len('json') + 1)])
+            last_match = int(os.path.splitext(os.path.basename(latest_file))[0])
+
             logging.info('Found last saved match %u', last_match)
             if first_match < last_match:
-                logging.warning('Overriding first match from %u to %u',
-                                first_match, last_match)
+                logging.warning('Overriding first match from %u to %u', first_match, last_match)
                 first_match = last_match
         except Exception:
             logging.exception('Failed to enumerate files')
