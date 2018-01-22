@@ -10,7 +10,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-.vscode
+.vscode/
 data/raw/
 env/
 build/
@@ -104,16 +104,10 @@ ENV/
 # mypy
 .mypy_cache/
 
-# Visual studio code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.code-workspace
 
 # Idea
 .idea/*
 packed.json
+!data/packed.json
 
 trained-model/
