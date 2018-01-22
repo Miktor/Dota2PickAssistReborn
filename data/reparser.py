@@ -18,7 +18,7 @@ avg_mmr = 0
 avg_duration = 0
 heroes_picked_times = {}
 
-ADVANCED_STATS = False
+ADVANCED_STATS = True
 
 
 def reparse(data):
@@ -74,21 +74,24 @@ def reparse(data):
                 return
 
             hero_id = player['hero_id']
-
-            heroes.append({'hero_id': hero_id, 'isRadiant': player['isRadiant']})
-
+            hero = {}
             if ADVANCED_STATS:
-                heroes.append({
+                hero = {
                     'lane_efficiency': player['lane_efficiency'],
                     'lane': player['lane'],
                     'lane_role': player['lane_role'],
                     'is_roaming': player['is_roaming']
-                })
+                }
+
+            hero['hero_id'] = hero_id
+            hero['isRadiant'] = player['isRadiant']
 
             if hero_id in heroes_picked_times:
                 heroes_picked_times[hero_id] += 1
             else:
                 heroes_picked_times[hero_id] = 1
+
+            heroes.append(hero)
 
         packed['heroes'] = heroes
 

@@ -19,6 +19,7 @@ ADVANCED_STATS = False
 
 RADIANT = 0
 DIRE = 1
+LANE_INDEX = 1
 
 MATCH_DURATION = 0
 MATCH_DURATION_DEFAULT = 60 * 45.0  # 45 min as 1.0
@@ -29,16 +30,16 @@ LANE_ROLE_ROW = 3
 ROAM_ROW = 4
 
 BATCH_SIZE = 256
-INPUT_PARAMETER_PER_HERO = 2  # 1 + 1 + 1  # side, lane, role, roam
+INPUT_PARAMETER_PER_HERO = 1 + 5  # 1-bot, 2 - mid, 3 - top, 4 - RJung, 5 - DJung + 1 + 1  # side, lane, role, roam
 MODEL_OUTPUTS = 2  # side
 
 
 def encode_pick(radiant: List[Hero], dire: List[Hero]):
-    pick = np.zeros([2, NUM_HEROES], dtype=np.float32)
+    pick = np.zeros([NUM_HEROES], dtype=np.float32)
     for hero in radiant:
-        pick[RADIANT, encode_hero(hero.value)] = 1
+        pick[encode_hero(hero.value)] = 1.0
     for hero in dire:
-        pick[DIRE, encode_hero(hero.value)] = 1
+        pick[encode_hero(hero.value)] = -1.0
     return pick
 
 
@@ -58,13 +59,18 @@ def to_training_data(data):
             else:
                 row = DIRE
 
+            hero_index = encode_hero(hero_id=hero['hero_id'])
+            training_heroes[i, row, hero_index] = 1
+
+            lane = hero['lane']
+            training_heroes[i, LANE_INDEX + lane - 1, hero_index] = 1
+
             if sample['radiant_win']:
                 training_results[i, RADIANT] = 1.0
             else:
                 training_results[i, DIRE] = 1.0
 
             if ADVANCED_STATS:
-                lane = hero['lane']
                 lane_role = hero['lane_role']
                 if hero['is_roaming']:
                     roaming = 1
@@ -74,9 +80,6 @@ def to_training_data(data):
                 training_results[i, LANE_ROLE_ROW] = lane_role
                 training_results[i, ROAM_ROW] = roaming
 
-            hero_index = encode_hero(hero_id=hero['hero_id'])
-            training_heroes[i, row, hero_index] = 1
-        assert np.sum(training_heroes[i]) == 10
     return training_heroes, training_matches, training_results
 
 
