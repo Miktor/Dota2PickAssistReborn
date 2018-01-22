@@ -27,9 +27,23 @@ class PickPredictionModel(object):
             # net = tf.contrib.layers.flatten([self.picks, self.match_details])
 
             net = tf.contrib.layers.fully_connected(
-                net, 512, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+                net,
+                1024,
+                activation_fn=tf.nn.relu,
+                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+            net = tf.contrib.layers.fully_connected(
+                net,
+                1024,
+                activation_fn=tf.nn.relu,
+                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
             net = tf.contrib.layers.fully_connected(
                 net, 512, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+            net = tf.contrib.layers.fully_connected(
+                net, 256, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+            net = tf.contrib.layers.fully_connected(
+                net, 128, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+            net = tf.contrib.layers.fully_connected(
+                net, 64, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
 
         with tf.variable_scope('Head'):
             net = tf.contrib.layers.fully_connected(
@@ -43,6 +57,9 @@ class PickPredictionModel(object):
             with tf.variable_scope('Loss'):
                 l2_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
                 self.loss = tf.losses.softmax_cross_entropy(self.target_results, net) + l2_loss
+
+            with tf.variable_scope('AUC'):
+                self.auc = tf.contrib.metrics.streaming_auc(predictions=self.predictions, labels=self.target_results)
 
             with tf.variable_scope('Optimizer'):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -64,6 +81,15 @@ class PickPredictionModel(object):
     def predict(self, sess: tf.Session, picks, match_details):
         return sess.run([self.predictions], feed_dict={self.picks: picks, self.match_details: match_details})
 
+    def calc_auc(self, sess: tf.Session, picks, match_details, results_test):
+        return sess.run(
+            [self.auc],
+            feed_dict={
+                self.picks: picks,
+                self.match_details: match_details,
+                self.target_results: results_test
+            })
+
     def save(self, sess, path=MODEL_PATH):
         full_path = self.saver.save(sess, path)
         print('Model saved to {0}'.format(full_path))
@@ -73,6 +99,9 @@ class PickPredictionModel(object):
         print('Model restored')
 
     def load_if_exists(self, sess, path=MODEL_PATH):
-        if os.path.exists(path + '.meta'):
-            print('Model already exists, loading: {0}'.format(path))
-            self.load(sess, path)
+        try:
+            if os.path.exists(path + '.meta'):
+                print('Model already exists, loading: {0}'.format(path))
+                self.load(sess, path)
+        except Exception:
+            print('Failed to load!')
