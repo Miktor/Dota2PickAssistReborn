@@ -7,26 +7,29 @@ L2_BETA = 0.001
 
 
 class PickPredictionModel(object):
-    def __init__(self, input_shape, outputs):
+
+    def __init__(self, hero_input_shape, match_input_shape, outputs):
         with tf.variable_scope('Inputs'):
             self.picks = tf.placeholder(
                 dtype=tf.float32, shape=[
                     None,
-                ] + list(input_shape))
+                ] + list(hero_input_shape))
+
+            self.match_details = tf.placeholder(dtype=tf.float32, shape=[None, match_input_shape])
             self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs])
 
         with tf.variable_scope('Base'):
-            net = tf.contrib.layers.flatten(self.picks)
+            flat_picks = tf.contrib.layers.flatten(self.picks)
+            flat_match_details = tf.contrib.layers.flatten(self.match_details)
+
+            net = tf.concat((flat_picks, flat_match_details), axis=1)
+
+            # net = tf.contrib.layers.flatten([self.picks, self.match_details])
+
             net = tf.contrib.layers.fully_connected(
-                net,
-                512,
-                activation_fn=tf.nn.relu,
-                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+                net, 512, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
             net = tf.contrib.layers.fully_connected(
-                net,
-                512,
-                activation_fn=tf.nn.relu,
-                weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+                net, 512, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
 
         with tf.variable_scope('Head'):
             net = tf.contrib.layers.fully_connected(
@@ -47,12 +50,18 @@ class PickPredictionModel(object):
         with tf.variable_scope('Saver'):
             self.saver = tf.train.Saver()
 
-    def train(self, sess: tf.Session, picks, results):
-        loss, _ = sess.run([self.loss, self.optimize_op], feed_dict={self.picks: picks, self.target_results: results})
+    def train(self, sess: tf.Session, picks, matches, results):
+        loss, _ = sess.run(
+            [self.loss, self.optimize_op],
+            feed_dict={
+                self.picks: picks,
+                self.match_details: matches,
+                self.target_results: results
+            })
         return loss
 
-    def predict(self, sess: tf.Session, picks):
-        return sess.run([self.predictions], feed_dict={self.picks: picks})
+    def predict(self, sess: tf.Session, picks, match_details):
+        return sess.run([self.predictions], feed_dict={self.picks: picks, self.match_details: match_details})
 
     def save(self, sess, path=MODEL_PATH):
         full_path = self.saver.save(sess, path)
