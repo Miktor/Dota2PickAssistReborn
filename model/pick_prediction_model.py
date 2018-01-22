@@ -41,7 +41,8 @@ class PickPredictionModel(object):
 
         with tf.variable_scope('Optimization'):
             with tf.variable_scope('Loss'):
-                self.loss = tf.losses.softmax_cross_entropy(self.target_results, net)
+                l2_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+                self.loss = tf.losses.softmax_cross_entropy(self.target_results, net) + l2_loss
 
             with tf.variable_scope('Optimizer'):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)

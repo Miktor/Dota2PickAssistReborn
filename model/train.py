@@ -85,7 +85,7 @@ def test_pick_both_sides(sess, model, pick, duration):
     picks_to_predict = [encoded_pick, np.flip(encoded_pick, 1)]
     print('radiant - {}'.format(pick[0]))
     print('dire - {}'.format(pick[1]))
-    print(model.predict(sess, picks_to_predict, [duration, duration]))
+    print(model.predict(sess, picks_to_predict, [[duration], [duration]]))
 
 
 def test_nn(sess, model):
@@ -134,8 +134,8 @@ def main():
             if epoch % 1000 == 0:
                 print('{0} Loss: {1}'.format(epoch, loss))
 
-            if loss < 0.1:
-                print('Loss is too small, finished training')
+            if loss < 0.01:
+                print('Loss is {0} @ {1}, finished training'.format(loss, epoch))
                 # model.save(sess)
                 break
 
