@@ -71,7 +71,7 @@ class PickPredictionModel(object):
         with tf.variable_scope('Saver'):
             self.saver = tf.train.Saver()
 
-    def train(self, sess: tf.Session, inputs: np.ndarray, results: np.ndarray):
+    def train(self, sess: tf.Session, inputs, results):
         loss, _ = sess.run(
             [self.loss, self.optimize_op],
             feed_dict={
@@ -80,10 +80,10 @@ class PickPredictionModel(object):
             })
         return loss
 
-    def predict(self, sess: tf.Session, inputs: np.ndarray):
+    def predict(self, sess: tf.Session, inputs):
         return sess.run([self.predictions], feed_dict={self.inputs: inputs})
 
-    def evaluate(self, sess: tf.Session, inputs: np.ndarray, target_results: np.ndarray):
+    def evaluate(self, sess: tf.Session, inputs, target_results):
         metric_values_tensors = []
         metric_update_ops = []
         for value_tensor, update_op in self.metrics.values():

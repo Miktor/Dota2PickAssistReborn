@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 from model.pick_prediction_model import PickPredictionModel
 from model.heroes import encode_hero, load_heroes, Hero
-from model.input_data import InpitData, MatchEncodeMap
+from model.input_data import InputData, MatchEncodeMap
 
 PACKED_FILE = 'data/packed.json'
 
@@ -33,17 +33,17 @@ def to_training_data(data):
     training_results = np.zeros(shape=[num_samples, MODEL_OUTPUTS], dtype=np.float32)
 
     for i, sample in enumerate(data):
-        InpitData(sample).encode(training_heroes[i, :])
+        InputData(sample).encode(training_heroes[i, :])
 
     return training_heroes, training_results
 
 
-def test_pick_both_sides(sess, model, pick, duration):
+def test_pick_both_sides(sess: tf.Session, model: PickPredictionModel, pick, duration):
     encoded_pick = encode_pick(pick[0], pick[1])
     picks_to_predict = [encoded_pick, np.flip(encoded_pick, 1)]
     print('radiant - {}'.format(pick[0]))
     print('dire - {}'.format(pick[1]))
-    print(model.predict(sess, picks_to_predict, [[duration], [duration]]))
+    print(model.predict(sess, picks_to_predict))
 
 
 def test_nn(sess, model):
@@ -68,21 +68,11 @@ def test_prediction(sess, model, picks_test, matches_test, results_test):
     print(model.calc_metrics(sess))
 
 
-def split_data(picks, matches, results):
-    random_seed = 13
-    picks_train, picks_test, matches_train, matches_test, results_train, results_test = train_test_split(
-        picks, matches, results, train_size=0.8, random_state=random_seed)
-
-    return ([picks_train, matches_train, results_train], [picks_test, matches_test, results_test])
-
-
 def main():
-
     picks_raw, results_raw = to_training_data(read())
-    ([picks_train, matches_train, results_train], [picks_test, matches_test, results_test]) = split_data(
-        picks_raw, matches_raw, results_raw)
+    x_train, y_train, x_test, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
-    model = PickPredictionModel(hero_input_shape=(MatchEncodeMap.Total), outputs=MODEL_OUTPUTS)
+    model = PickPredictionModel(input_shape=(MatchEncodeMap.Total, ), outputs=MODEL_OUTPUTS)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -98,12 +88,8 @@ def main():
 
         epoch = 0
         while True:
-            indices = np.random.randint(0, len(picks_train), BATCH_SIZE)
-            batch_picks = picks_train[indices]
-            batch_matches = matches_train[indices]
-            batch_results = results_train[indices]
-
-            loss = model.train(sess, batch_picks, batch_matches, batch_results)
+            indices = np.random.randint(0, len(x_train), BATCH_SIZE)
+            loss = model.train(sess, x_train[indices], y_train[indices])
 
             if epoch % 1000 == 0 or loss < 0.01:
                 print('{0} Loss: {1}'.format(epoch, loss))
@@ -115,7 +101,7 @@ def main():
 
             epoch += 1
 
-        test_prediction(sess, model, picks_test, matches_test, results_test)
+        test_prediction(sess, model, x_test, y_test)
 
 
 if __name__ == '__main__':

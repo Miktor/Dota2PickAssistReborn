@@ -46,7 +46,7 @@ class HeroDetails(object):
         output_data[HeroEncodeMap.HeroRole] = self.lane
 
 
-class InpitData(object):
+class InputData(object):
 
     def __init__(self, json_data):
         self.duration = json_data['duration'] / MATCH_DURATION_DEFAULT
