@@ -14,10 +14,12 @@ METRICS = {
 
 
 class PickPredictionModel(object):
-    def __init__(self, input_shape: tuple, outputs: int=2):
+
+    def __init__(self, input_shape: tuple, outputs: int = 2):
         with tf.variable_scope('Inputs'):
             self.inputs = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape, name='Input')
             self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs], name='TargetResults')
+            self.dropout_rate = tf.placeholder(dtype=tf.float32, name='DropoutRate')
 
         with tf.variable_scope('Base'):
             flat = tf.contrib.layers.flatten(self.inputs)
@@ -34,6 +36,9 @@ class PickPredictionModel(object):
                 weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
             net = tf.contrib.layers.fully_connected(
                 net, 512, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
+
+        with tf.variable_scope('Dropout'):
+            net = tf.nn.dropout(net, self.dropout_rate)
 
         with tf.variable_scope('Head'):
             net = tf.contrib.layers.fully_connected(
@@ -62,13 +67,18 @@ class PickPredictionModel(object):
             tf.summary.scalar('cross_entropy_loss', self.loss)
             self.merged_summaries = tf.summary.merge_all()
 
+            with tf.name_scope("Histograms"):
+                for w in tf.get_collection(tf.GraphKeys.WEIGHTS):
+                    tf.summary.histogram("weights", w)
+
         with tf.variable_scope('Saver'):
             self.saver = tf.train.Saver()
 
-    def train(self, sess: tf.Session, inputs, results):
+    def train(self, sess: tf.Session, dropout_rate, inputs, results):
         loss, _, summ = sess.run(
             [self.loss, self.optimize_op, self.merged_summaries],
             feed_dict={
+                self.dropout_rate: dropout_rate,
                 self.inputs: inputs,
                 self.target_results: results
             })
