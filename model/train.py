@@ -21,7 +21,7 @@ def read(path=PACKED_FILE):
         return json.loads(f.read())
 
 
-BATCH_SIZE = 256
+BATCH_SIZE = 64
 
 
 def to_training_data(data):
@@ -59,7 +59,6 @@ def test_nn(sess, model):
 
 
 def test_prediction(sess, model, picks_test, matches_test, results_test):
-    sess.run(tf.local_variables_initializer())
 
     model.update_metrics(sess, picks_test, matches_test, results_test)
     print(model.calc_metrics(sess))
@@ -78,16 +77,17 @@ def main():
     with tf.Session(config=config) as sess:
 
         sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
 
         timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H-%M')
-        train_writer = tf.summary.FileWriter(os.path.join('C:\\Development\\logs', timestamp),
-                                             graph=tf.get_default_graph())
+        train_writer = tf.summary.FileWriter(
+            os.path.join('C:\\Development\\logs', timestamp), graph=tf.get_default_graph())
         # model.load_if_exists(sess)
 
         epoch = 0
         while True:
             indices = np.random.randint(0, len(x_train), BATCH_SIZE)
-            loss, summ = model.train(sess, x_train[indices], y_train[indices])
+            loss, summ = model.train(sess, 0.5, x_train[indices], y_train[indices])
             train_writer.add_summary(summ, epoch)
 
             if epoch % 1000 == 0 or loss < 0.01:
