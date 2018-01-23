@@ -12,7 +12,7 @@ class KerasModel(object):
         model.add(Dropout(0.5))
         model.add(Dense(outputs, activation='softmax'))
 
-        model.compile(loss='binary_crossentropy', optimizer=Adam(lr=0.01), metrics=['accuracy'])
+        model.compile(loss='binary_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
         self.model = model
 
     def train(self, inputs, target_results, batch_size=128, epochs=10):
