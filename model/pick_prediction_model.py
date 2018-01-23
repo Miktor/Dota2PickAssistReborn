@@ -13,10 +13,10 @@ class PickPredictionModel(object):
             self.picks = tf.placeholder(
                 dtype=tf.float32, shape=[
                     None,
-                ] + list(hero_input_shape))
+                ] + list(hero_input_shape), name='Heroes')
 
-            self.match_details = tf.placeholder(dtype=tf.float32, shape=[None, match_input_shape])
-            self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs])
+            self.match_details = tf.placeholder(dtype=tf.float32, shape=[None, match_input_shape], name='MatchDetails')
+            self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs], name='TargetResults')
 
         with tf.variable_scope('Base'):
             flat_picks = tf.contrib.layers.flatten(self.picks)
@@ -59,7 +59,7 @@ class PickPredictionModel(object):
                 self.loss = tf.losses.softmax_cross_entropy(self.target_results, net) + l2_loss
 
             with tf.variable_scope('AUC'):
-                self.auc = tf.contrib.metrics.streaming_auc(predictions=self.predictions, labels=self.target_results)
+                self.auc, self.update_op_auc = tf.metrics.auc(predictions=self.predictions, labels=self.target_results)
 
             with tf.variable_scope('Optimizer'):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -83,7 +83,7 @@ class PickPredictionModel(object):
 
     def calc_auc(self, sess: tf.Session, picks, match_details, results_test):
         return sess.run(
-            [self.auc],
+            [self.auc, self.update_op_auc],
             feed_dict={
                 self.picks: picks,
                 self.match_details: match_details,

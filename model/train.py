@@ -118,7 +118,9 @@ def test_nn(sess, model):
     test_pick_both_sides(sess, model, pick3, 1.0)
 
 
-def test_prediction(picks_test, matches_test, results_test):
+def test_prediction(sess, model, picks_test, matches_test, results_test):
+    sess.run(tf.local_variables_initializer())
+
     print(model.calc_auc(sess, picks_test, matches_test, results_test))
 
 
@@ -171,7 +173,7 @@ def main():
 
             epoch += 1
 
-        test_prediction(picks_test, matches_test, results_test)
+        test_prediction(sess, model, picks_test, matches_test, results_test)
 
 
 if __name__ == '__main__':
