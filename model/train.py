@@ -1,5 +1,7 @@
 import json
 import enum
+import os
+import datetime
 import numpy as np
 import tensorflow as tf
 from typing import List
@@ -77,14 +79,16 @@ def main():
 
         sess.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter('C:\\Development\\logs', graph=tf.get_default_graph())
-
+        timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H-%M')
+        train_writer = tf.summary.FileWriter(os.path.join('C:\\Development\\logs', timestamp),
+                                             graph=tf.get_default_graph())
         # model.load_if_exists(sess)
 
         epoch = 0
         while True:
             indices = np.random.randint(0, len(x_train), BATCH_SIZE)
-            loss = model.train(sess, x_train[indices], y_train[indices])
+            loss, summ = model.train(sess, x_train[indices], y_train[indices])
+            train_writer.add_summary(summ, epoch)
 
             if epoch % 1000 == 0 or loss < 0.01:
                 print('{0} Loss: {1}'.format(epoch, loss))

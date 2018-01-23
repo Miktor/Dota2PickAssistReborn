@@ -34,12 +34,6 @@ class PickPredictionModel(object):
                 weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
             net = tf.contrib.layers.fully_connected(
                 net, 512, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
-            net = tf.contrib.layers.fully_connected(
-                net, 256, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
-            net = tf.contrib.layers.fully_connected(
-                net, 128, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
-            net = tf.contrib.layers.fully_connected(
-                net, 64, activation_fn=tf.nn.relu, weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
 
         with tf.variable_scope('Head'):
             net = tf.contrib.layers.fully_connected(
@@ -63,7 +57,7 @@ class PickPredictionModel(object):
             self.metrics = {}
             for metric_name, metric_fn in METRICS.items():
                 self.metrics[metric_name] = metric_fn(predictions=self.predictions, labels=self.target_results)
-                tf.summary.scalar(metric_name, self.metrics[metric_name][0])
+                #tf.summary.scalar(metric_name, self.metrics[metric_name][0])
 
             tf.summary.scalar('cross_entropy_loss', self.loss)
             self.merged_summaries = tf.summary.merge_all()
@@ -72,13 +66,13 @@ class PickPredictionModel(object):
             self.saver = tf.train.Saver()
 
     def train(self, sess: tf.Session, inputs, results):
-        loss, _ = sess.run(
-            [self.loss, self.optimize_op],
+        loss, _, summ = sess.run(
+            [self.loss, self.optimize_op, self.merged_summaries],
             feed_dict={
                 self.inputs: inputs,
                 self.target_results: results
             })
-        return loss
+        return loss, summ
 
     def predict(self, sess: tf.Session, inputs):
         return sess.run([self.predictions], feed_dict={self.inputs: inputs})
