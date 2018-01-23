@@ -22,6 +22,12 @@ class MatchEncodeMap(enum.IntEnum):
     Total = HeroEnd + 1
 
 
+class ResultsEncodeMap(enum.IntEnum):
+    Radiant = 0
+    Dire = 1
+    Total = 2
+
+
 PARAMETERS_PER_MATCH = 1
 PARAMETERS_PER_HERO = NUM_HEROES
 
@@ -51,23 +57,25 @@ class InputData(object):
     def __init__(self, json_data):
         self.duration = json_data['duration'] / MATCH_DURATION_DEFAULT
 
-        if json_data['radiant_win']:
-            self.winner = RADIANT
-        else:
-            self.winner = DIRE
+        self.radiant_win = bool(json_data['radiant_win'])
 
         self.heroes = [HeroDetails(hero_data) for hero_data in json_data['heroes']]
 
-    def encode(self, output_array):
-        if output_array.shape != [MatchEncodeMap.Total]:
+    def encode(self, output_heroes, output_results):
+        if output_heroes.shape[0] != MatchEncodeMap.Total:
             raise RuntimeError('Invalid shape')
 
-        output_array[MatchEncodeMap.MatchDuration] = self.duration
+        if self.radiant_win:
+            output_results[ResultsEncodeMap.Radiant] = 1
+        else:
+            output_results[ResultsEncodeMap.Dire] = 1
+
+        output_heroes[MatchEncodeMap.MatchDuration] = self.duration
 
         for i, hero in enumerate(self.heroes):
             begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * i
             end_i = begin_i + HeroEncodeMap.Total
-            hero.encode(output_array[begin_i:end_i])
+            hero.encode(output_heroes[begin_i:end_i])
 
 
 if __name__ == '__main__':

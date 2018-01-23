@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 from model.pick_prediction_model import PickPredictionModel
 from model.heroes import encode_hero, load_heroes, Hero
-from model.input_data import InputData, MatchEncodeMap
+from model.input_data import InputData, MatchEncodeMap, ResultsEncodeMap
 
 PACKED_FILE = 'data/packed.json'
 
@@ -21,19 +21,14 @@ def read(path=PACKED_FILE):
 
 BATCH_SIZE = 256
 
-MODEL_OUTPUTS = 1  # side
-WINNER_INDEX = 0
-RADIANT = 1.0
-DIRE = -1.0
-
 
 def to_training_data(data):
     num_samples = len(data)
     training_heroes = np.zeros(shape=[num_samples, MatchEncodeMap.Total], dtype=np.float32)
-    training_results = np.zeros(shape=[num_samples, MODEL_OUTPUTS], dtype=np.float32)
+    training_results = np.zeros(shape=[num_samples, ResultsEncodeMap.Total], dtype=np.float32)
 
     for i, sample in enumerate(data):
-        InputData(sample).encode(training_heroes[i, :])
+        InputData(sample).encode(training_heroes[i, :], training_results[i, :])
 
     return training_heroes, training_results
 
@@ -70,9 +65,9 @@ def test_prediction(sess, model, picks_test, matches_test, results_test):
 
 def main():
     picks_raw, results_raw = to_training_data(read())
-    x_train, y_train, x_test, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
+    x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
-    model = PickPredictionModel(input_shape=(MatchEncodeMap.Total, ), outputs=MODEL_OUTPUTS)
+    model = PickPredictionModel(input_shape=(MatchEncodeMap.Total,), outputs=ResultsEncodeMap.Total)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
