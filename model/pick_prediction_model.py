@@ -63,18 +63,17 @@ class PickPredictionModel(object):
                 self.optimize_op = optimizer.minimize(self.loss)
 
         with tf.variable_scope('Evaluation'):
-            won_side = tf.clip_by_value(self.predictions, -1.0, 1.0)
+            won_side = tf.clip_by_value(self.predictions, 0.0, 1.0)
+            res = tf.clip_by_value(self.target_results, 0.0, 1.0)
 
             with tf.variable_scope('AUC'):
-                self.auc, self.update_op_auc = tf.metrics.auc(predictions=won_side, labels=self.target_results)
+                self.auc, self.update_op_auc = tf.metrics.auc(predictions=won_side, labels=res)
 
             with tf.variable_scope('Accuracy'):
-                self.accuracy, self.update_op_accuracy = tf.metrics.accuracy(
-                    predictions=won_side, labels=self.target_results)
+                self.accuracy, self.update_op_accuracy = tf.metrics.accuracy(predictions=won_side, labels=res)
 
             with tf.variable_scope('Precision'):
-                self.precision, self.update_op_precision = tf.metrics.precision(
-                    predictions=won_side, labels=self.target_results)
+                self.precision, self.update_op_precision = tf.metrics.precision(predictions=won_side, labels=res)
 
         with tf.variable_scope('Saver'):
             self.saver = tf.train.Saver()
