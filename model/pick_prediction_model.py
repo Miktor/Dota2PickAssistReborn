@@ -1,33 +1,29 @@
 import tensorflow as tf
 import os
+import numpy as np
 
 MODEL_PATH = './trained-model/pick_prediction'
 LEARNING_RATE = 1e-4
 L2_BETA = 0.001
 
+METRICS = {
+    'auc': tf.metrics.auc,
+    'accuracy': tf.metrics.accuracy,
+    'precision': tf.metrics.precision,
+}
+
 
 class PickPredictionModel(object):
-
-    def __init__(self, hero_input_shape, match_input_shape, outputs):
+    def __init__(self, input_shape: tuple, outputs: int=2):
         with tf.variable_scope('Inputs'):
-            self.picks = tf.placeholder(
-                dtype=tf.float32, shape=[
-                    None,
-                ] + list(hero_input_shape), name='Heroes')
-
-            self.match_details = tf.placeholder(dtype=tf.float32, shape=[None, match_input_shape], name='MatchDetails')
+            self.inputs = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape, name='Input')
             self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs], name='TargetResults')
 
         with tf.variable_scope('Base'):
-            flat_picks = tf.contrib.layers.flatten(self.picks)
-            flat_match_details = tf.contrib.layers.flatten(self.match_details)
-
-            net = tf.concat((flat_picks, flat_match_details), axis=1)
-
-            # net = tf.contrib.layers.flatten([self.picks, self.match_details])
+            flat = tf.contrib.layers.flatten(self.inputs)
 
             net = tf.contrib.layers.fully_connected(
-                net,
+                flat,
                 1024,
                 activation_fn=tf.nn.relu,
                 weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
@@ -51,60 +47,63 @@ class PickPredictionModel(object):
                 outputs,
                 activation_fn=tf.nn.relu,
                 weights_regularizer=tf.contrib.layers.l2_regularizer(scale=L2_BETA))
-            self.predictions = tf.contrib.layers.fully_connected(net, outputs, activation_fn=tf.nn.softmax)
+            prediction_logits = tf.contrib.layers.fully_connected(net, outputs)
+            self.predictions = tf.nn.softmax(prediction_logits)
 
         with tf.variable_scope('Optimization'):
             with tf.variable_scope('Loss'):
                 l2_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-                self.loss = tf.losses.softmax_cross_entropy(self.target_results, net) + l2_loss
+                self.loss = tf.losses.softmax_cross_entropy(self.target_results, prediction_logits) + l2_loss
 
             with tf.variable_scope('Optimizer'):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
                 self.optimize_op = optimizer.minimize(self.loss)
 
-        with tf.variable_scope('Evaluation'):
-            won_side = tf.clip_by_value(self.predictions, 0.0, 1.0)
-            res = tf.clip_by_value(self.target_results, 0.0, 1.0)
+        with tf.variable_scope('Stats'):
+            self.metrics = {}
+            for metric_name, metric_fn in METRICS.items():
+                self.metrics[metric_name] = metric_fn(predictions=self.predictions, labels=self.target_results)
+                tf.summary.scalar(metric_name, self.metrics[metric_name][0])
 
-            with tf.variable_scope('AUC'):
-                self.auc, self.update_op_auc = tf.metrics.auc(predictions=won_side, labels=res)
-
-            with tf.variable_scope('Accuracy'):
-                self.accuracy, self.update_op_accuracy = tf.metrics.accuracy(predictions=won_side, labels=res)
-
-            with tf.variable_scope('Precision'):
-                self.precision, self.update_op_precision = tf.metrics.precision(predictions=won_side, labels=res)
+            tf.summary.scalar('cross_entropy_loss', self.loss)
+            self.merged_summaries = tf.summary.merge_all()
 
         with tf.variable_scope('Saver'):
             self.saver = tf.train.Saver()
 
-    def train(self, sess: tf.Session, picks, matches, results):
+    def train(self, sess: tf.Session, inputs: np.ndarray, results: np.ndarray):
         loss, _ = sess.run(
             [self.loss, self.optimize_op],
             feed_dict={
-                self.picks: picks,
-                self.match_details: matches,
+                self.inputs: inputs,
                 self.target_results: results
             })
         return loss
 
-    def predict(self, sess: tf.Session, picks, match_details):
-        return sess.run([self.predictions], feed_dict={self.picks: picks, self.match_details: match_details})
+    def predict(self, sess: tf.Session, inputs: np.ndarray):
+        return sess.run([self.predictions], feed_dict={self.inputs: inputs})
 
-    def update_metrics(self, sess: tf.Session, picks, match_details, results):
-        sess.run(
-            [self.update_op_auc, self.update_op_accuracy, self.update_op_precision],
+    def evaluate(self, sess: tf.Session, inputs: np.ndarray, target_results: np.ndarray):
+        metric_values_tensors = []
+        metric_update_ops = []
+        for value_tensor, update_op in self.metrics.values():
+            metric_values_tensors.append(value_tensor)
+            metric_update_ops.append(update_op)
+
+        results = sess.run(
+            metric_values_tensors + metric_update_ops,
             feed_dict={
-                self.picks: picks,
-                self.match_details: match_details,
-                self.target_results: results
+                self.inputs: inputs,
+                self.target_results: target_results
             })
 
-    def calc_metrics(self, sess: tf.Session):
-        return sess.run([self.auc, self.accuracy, self.precision])
+        metric_values = results[:len(metric_values_tensors)]
+        return {name: value for name, value in zip(self.metrics.keys(), metric_values)}
 
-    def calc_acc(self, sess: tf.Session):
-        return sess.run([self.accuracy])
+    def metrics(self, sess: tf.Session):
+        metric_values_tensors = [v for v, _ in self.metrics.values()]
+        metric_values = sess.run(metric_values_tensors)
+        return {name: value for name, value in zip(self.metrics.keys(), metric_values)}
 
     def save(self, sess, path=MODEL_PATH):
         full_path = self.saver.save(sess, path)
