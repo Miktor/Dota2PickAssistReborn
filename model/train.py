@@ -8,7 +8,8 @@ from random import shuffle
 from sklearn.model_selection import train_test_split
 
 from model.pick_prediction_model import PickPredictionModel
-from model.heroes import encode_hero, NUM_HEROES, load_heroes, Hero
+from model.heroes import encode_hero, load_heroes, Hero
+from model.input_data import InpitData, MatchEncodeMap
 
 PACKED_FILE = 'data/packed.json'
 
@@ -19,17 +20,6 @@ def read(path=PACKED_FILE):
 
 
 BATCH_SIZE = 256
-ADVANCED_STATS = False
-
-MATCH_DURATION = 0
-MATCH_DURATION_DEFAULT = 60 * 45.0  # 45 min as 1.0
-PER_MATCH_INPUTS = 1  # duration
-
-INPUT_PARAMETER_PER_HERO = 1 + 5 + 1  #+ 5  # 1-bot, 2 - mid, 3 - top, 4 - RJung, 5 - DJung + is_roam + role  # side, lane, role, roam
-SIDE_INDEX = 0
-LANE_INDEX = 1
-ROAM_INDEX = 6
-ROLE_INDEX = 7
 
 MODEL_OUTPUTS = 1  # side
 WINNER_INDEX = 0
@@ -37,62 +27,15 @@ RADIANT = 1.0
 DIRE = -1.0
 
 
-class Lane(enum.Enum):
-    Bot = 1
-    Mid = 2
-    Top = 3
-    RadiantForest = 4
-    DireForest = 5
-
-
-class Role(enum.Enum):
-    Carry = 1
-    Support = 2
-    Offlane = 3
-    RadiantForest = 4
-    DireForest = 5
-
-
-def encode_pick(radiant: List[Hero], dire: List[Hero]):
-    pick = np.zeros([NUM_HEROES], dtype=np.float32)
-    for hero in radiant:
-        pick[encode_hero(hero.value)] = 1.0
-    for hero in dire:
-        pick[encode_hero(hero.value)] = -1.0
-    return pick
-
-
 def to_training_data(data):
     num_samples = len(data)
-    training_heroes = np.zeros(shape=[num_samples, INPUT_PARAMETER_PER_HERO, NUM_HEROES], dtype=np.float32)
-    training_matches = np.zeros(shape=[num_samples, PER_MATCH_INPUTS], dtype=np.float32)
+    training_heroes = np.zeros(shape=[num_samples, MatchEncodeMap.Total], dtype=np.float32)
     training_results = np.zeros(shape=[num_samples, MODEL_OUTPUTS], dtype=np.float32)
 
     for i, sample in enumerate(data):
+        InpitData(sample).encode(training_heroes[i, :])
 
-        training_matches[i, MATCH_DURATION] = sample['duration'] / MATCH_DURATION_DEFAULT
-
-        if sample['radiant_win']:
-            training_results[i, WINNER_INDEX] = RADIANT
-        else:
-            training_results[i, WINNER_INDEX] = DIRE
-
-        for hero in sample['heroes']:
-
-            hero_index = encode_hero(hero_id=hero['hero_id'])
-
-            if hero['isRadiant']:
-                training_heroes[i, SIDE_INDEX, hero_index] = RADIANT
-            else:
-                training_heroes[i, SIDE_INDEX, hero_index] = DIRE
-
-            lane = hero['lane']
-            training_heroes[i, LANE_INDEX + lane - 1, hero_index] = 1
-
-            if hero['is_roaming']:
-                training_heroes[i, ROAM_INDEX] = 1
-
-    return training_heroes, training_matches, training_results
+    return training_heroes, training_results
 
 
 def test_pick_both_sides(sess, model, pick, duration):
@@ -135,14 +78,11 @@ def split_data(picks, matches, results):
 
 def main():
 
-    picks_raw, matches_raw, results_raw = to_training_data(read())
+    picks_raw, results_raw = to_training_data(read())
     ([picks_train, matches_train, results_train], [picks_test, matches_test, results_test]) = split_data(
         picks_raw, matches_raw, results_raw)
 
-    model = PickPredictionModel(
-        hero_input_shape=(INPUT_PARAMETER_PER_HERO, NUM_HEROES),
-        match_input_shape=PER_MATCH_INPUTS,
-        outputs=MODEL_OUTPUTS)
+    model = PickPredictionModel(hero_input_shape=(MatchEncodeMap.Total), outputs=MODEL_OUTPUTS)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
