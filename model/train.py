@@ -121,7 +121,8 @@ def test_nn(sess, model):
 def test_prediction(sess, model, picks_test, matches_test, results_test):
     sess.run(tf.local_variables_initializer())
 
-    print(model.calc_auc(sess, picks_test, matches_test, results_test))
+    model.update_metrics(sess, picks_test, matches_test, results_test)
+    print(model.calc_metrics(sess))
 
 
 def split_data(picks, matches, results):
@@ -163,7 +164,8 @@ def main():
             batch_results = results_train[indices]
 
             loss = model.train(sess, batch_picks, batch_matches, batch_results)
-            if epoch % 1000 == 0:
+
+            if epoch % 1000 == 0 or loss < 0.01:
                 print('{0} Loss: {1}'.format(epoch, loss))
 
             if loss < 0.01:

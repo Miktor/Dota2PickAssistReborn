@@ -58,12 +58,23 @@ class PickPredictionModel(object):
                 l2_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
                 self.loss = tf.losses.softmax_cross_entropy(self.target_results, net) + l2_loss
 
-            with tf.variable_scope('AUC'):
-                self.auc, self.update_op_auc = tf.metrics.auc(predictions=self.predictions, labels=self.target_results)
-
             with tf.variable_scope('Optimizer'):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
                 self.optimize_op = optimizer.minimize(self.loss)
+
+        with tf.variable_scope('Evaluation'):
+            won_side = tf.clip_by_value(self.predictions, -1.0, 1.0)
+
+            with tf.variable_scope('AUC'):
+                self.auc, self.update_op_auc = tf.metrics.auc(predictions=won_side, labels=self.target_results)
+
+            with tf.variable_scope('Accuracy'):
+                self.accuracy, self.update_op_accuracy = tf.metrics.accuracy(
+                    predictions=won_side, labels=self.target_results)
+
+            with tf.variable_scope('Precision'):
+                self.precision, self.update_op_precision = tf.metrics.precision(
+                    predictions=won_side, labels=self.target_results)
 
         with tf.variable_scope('Saver'):
             self.saver = tf.train.Saver()
@@ -81,14 +92,20 @@ class PickPredictionModel(object):
     def predict(self, sess: tf.Session, picks, match_details):
         return sess.run([self.predictions], feed_dict={self.picks: picks, self.match_details: match_details})
 
-    def calc_auc(self, sess: tf.Session, picks, match_details, results_test):
-        return sess.run(
-            [self.auc, self.update_op_auc],
+    def update_metrics(self, sess: tf.Session, picks, match_details, results):
+        sess.run(
+            [self.update_op_auc, self.update_op_accuracy, self.update_op_precision],
             feed_dict={
                 self.picks: picks,
                 self.match_details: match_details,
-                self.target_results: results_test
+                self.target_results: results
             })
+
+    def calc_metrics(self, sess: tf.Session):
+        return sess.run([self.auc, self.accuracy, self.precision])
+
+    def calc_acc(self, sess: tf.Session):
+        return sess.run([self.accuracy])
 
     def save(self, sess, path=MODEL_PATH):
         full_path = self.saver.save(sess, path)
