@@ -2,8 +2,8 @@ from keras import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
 
-
 class KerasModel(object):
+
     def __init__(self, input_shape, outputs):
         model = Sequential()
         model.add(Dense(512, activation='relu', input_shape=input_shape))
