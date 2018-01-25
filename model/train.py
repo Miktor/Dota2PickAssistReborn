@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 from typing import List
 from random import shuffle
+from tensorflow.python import debug as tf_debug
 
 from sklearn.model_selection import train_test_split
 
@@ -13,6 +14,7 @@ from model.pick_prediction_model import PickPredictionModel
 from model.heroes import encode_hero, load_heroes, Hero
 from model.input_data import InputData, MatchEncodeMap, ResultsEncodeMap
 import model.keras_model as k
+from keras import backend as back
 
 PACKED_FILE = 'data/packed.json'
 
@@ -59,9 +61,9 @@ def test_nn(sess, model):
     test_pick_both_sides(sess, model, pick3, 1.0)
 
 
-def test_prediction(sess, model, picks_test, matches_test, results_test):
+def test_prediction(sess, model, picks_test, results_test):
 
-    model.update_metrics(sess, picks_test, matches_test, results_test)
+    model.update_metrics(sess, picks_test, results_test)
     print(model.calc_metrics(sess))
 
 
@@ -69,13 +71,15 @@ def main_old():
     picks_raw, results_raw = to_training_data(read())
     x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
-    model = PickPredictionModel(input_shape=(MatchEncodeMap.Total,), outputs=ResultsEncodeMap.Total)
+    model = PickPredictionModel(inputs=MatchEncodeMap.Total, outputs=ResultsEncodeMap.Total)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
     with tf.Session(config=config) as sess:
+
+        # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
@@ -88,31 +92,51 @@ def main_old():
         epoch = 0
         while True:
             indices = np.random.randint(0, len(x_train), BATCH_SIZE)
-            loss, summ = model.train(sess, 0.5, x_train[indices], y_train[indices])
+            x_epoch = x_train[indices]
+            y_epoch = y_train[indices]
+            loss, acc, summ, _ = model.train(sess, 0.5, x_epoch, y_epoch)
+            # train_writer.add_summary(summ, epoch)
+            # print(pred_log)
+            # print(pred)
+
             train_writer.add_summary(summ, epoch)
 
-            if epoch % 1000 == 0 or loss < 0.01:
-                print('{0} Loss: {1}'.format(epoch, loss))
+            if epoch % 100 == 0:
+                #metr = model.metrics(sess)
+                print('{0} Loss: {1}; Acc: {2}'.format(epoch, loss, acc))
 
-            if loss < 0.01:
+            if loss < 0.005:
                 print('Loss is {0} @ {1}, finished training'.format(loss, epoch))
                 model.save(sess)
                 break
 
             epoch += 1
 
-        test_prediction(sess, model, x_test, y_test)
+        print(model.evaluate(sess, x_test, y_test))
+        # test_prediction(sess, model, x_test, y_test)
+
+
+import tensorflow as tf
+
+from keras import backend as K
 
 
 def main():
     picks_raw, results_raw = to_training_data(read())
     x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
+    sess = tf.Session()
+    back.set_session(sess)
+
     model = k.KerasModel(input_shape=(MatchEncodeMap.Total,), outputs=ResultsEncodeMap.Total)
+
+    timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H-%M')
+    train_writer = tf.summary.FileWriter(os.path.join('C:\\Development\\logs', timestamp), graph=tf.get_default_graph())
+
     model.train(x_train, y_train, batch_size=BATCH_SIZE, epochs=100)
     score = model.evaluate(x_test, y_test)
     print('Score: {0}'.format(score))
 
 
 if __name__ == '__main__':
-    main()
+    main_old()

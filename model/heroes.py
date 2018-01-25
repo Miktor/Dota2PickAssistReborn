@@ -1,17 +1,6 @@
 import json
 import enum
 
-HEROES = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 32,
-    33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
-    62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
-    91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 119,
-    120
-]
-
-NUM_HEROES = len(HEROES)
-assert NUM_HEROES == 115
-
 
 class Hero(enum.IntEnum):
     AntiMage = 1
@@ -131,26 +120,32 @@ class Hero(enum.IntEnum):
     Pangolier = 120
 
 
-class Lane(enum.Enum):
+NUM_HEROES = len(Hero)
+assert NUM_HEROES == 115
+
+
+class Lane(enum.IntEnum):
     Bot = 1
     Mid = 2
     Top = 3
     RadiantForest = 4
     DireForest = 5
+    Total = 5
 
 
-class Role(enum.Enum):
+class Role(enum.IntEnum):
     Carry = 1
     Support = 2
     Offlane = 3
     RadiantForest = 4
     DireForest = 5
+    Total = 5
 
 
 def encode_hero(hero_id):
-    idx = HEROES.index(hero_id)
-    if idx >= 0:
-        return idx
+    for idx, e in enumerate(list(Hero)):
+        if e.value == hero_id:
+            return idx
     raise RuntimeError('No such hero {0}'.format(hero_id))
 
 
