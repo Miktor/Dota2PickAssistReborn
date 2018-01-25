@@ -6,7 +6,7 @@ MODEL_PATH = './trained-model/pick_prediction'
 LEARNING_RATE = 5 * 1e-5
 L2_BETA = 0.001
 
-METRICS = {'accuracy': tf.metrics.accuracy, 'auc': tf.metrics.auc, 'precision': tf.metrics.precision}
+METRICS = {'auc': tf.metrics.auc}
 
 
 class PickPredictionModel(object):
@@ -24,9 +24,11 @@ class PickPredictionModel(object):
             flat_input = tf.contrib.layers.flatten(self.inputs)
 
             hid_1 = tf.contrib.layers.fully_connected(flat_input, 1024, activation_fn=tf.nn.relu)
+            hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn')
             # hid_1 = tf.nn.dropout(hid_1, keep_prob=self.dropout)
 
             hid_2 = tf.contrib.layers.fully_connected(hid_1, 1024, activation_fn=tf.nn.relu)
+            hid_2 = tf.contrib.layers.batch_norm(hid_2, center=True, scale=True, is_training=True, scope='bn')
             # hid_2 = tf.nn.dropout(hid_2, keep_prob=self.dropout)
 
             hid_exit = hid_2
@@ -39,6 +41,9 @@ class PickPredictionModel(object):
         with tf.variable_scope('Optimization'):
             with tf.variable_scope('Loss'):
                 self.loss = tf.losses.softmax_cross_entropy(self.target_results, self.logits)
+
+            with tf.name_scope('accuracy'):
+                self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y, 1), tf.argmax(self.logits, 1)), 'float32'))
 
             with tf.variable_scope('Optimizer'):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -56,6 +61,7 @@ class PickPredictionModel(object):
                 tf.summary.scalar(metric_name, metric_val)
                 #tf.summary.scalar(metric_name, self.metrics_array[metric_name][0])
 
+            tf.summary.scalar('accuracy', self.accuracy)
             tf.summary.scalar('cross_entropy_loss', self.loss)
             tf.summary.histogram('logits', self.logits)
             tf.summary.histogram('predictions', self.predictions)
@@ -73,15 +79,19 @@ class PickPredictionModel(object):
             metric_update_ops.append(update_op)
 
         results = sess.run(
-            [self.loss, self.optimize_op, self.merged_summaries] + metric_values_tensors + metric_update_ops,
+            [self.loss, self.accuracy, self.optimize_op, self.merged_summaries] + metric_values_tensors +
+            metric_update_ops,
             feed_dict={
                 self.dropout: dropout,
                 self.inputs: inputs,
                 self.target_results: results
             })
 
-        metric_values = results[3:3 + len(metric_values_tensors)]
-        return results[0], results[2], {name: value for name, value in zip(self.metrics_array.keys(), metric_values)}
+        metric_values = results[4:3 + len(metric_values_tensors)]
+        return results[0], results[1], results[2], {
+            name: value
+            for name, value in zip(self.metrics_array.keys(), metric_values)
+        }
 
     def get_summaries(self, sess: tf.Session):
         summ = sess.run([self.merged_summaries])

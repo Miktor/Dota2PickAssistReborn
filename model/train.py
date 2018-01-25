@@ -94,7 +94,7 @@ def main_old():
             indices = np.random.randint(0, len(x_train), BATCH_SIZE)
             x_epoch = x_train[indices]
             y_epoch = y_train[indices]
-            loss, summ, _ = model.train(sess, 0.5, x_epoch, y_epoch)
+            loss, acc, summ, _ = model.train(sess, 0.5, x_epoch, y_epoch)
             # train_writer.add_summary(summ, epoch)
             # print(pred_log)
             # print(pred)
@@ -103,7 +103,7 @@ def main_old():
 
             if epoch % 100 == 0:
                 #metr = model.metrics(sess)
-                print('{0} Loss: {1}'.format(epoch, loss))
+                print('{0} Loss: {1}; Acc: {2}'.format(epoch, loss, acc))
 
             if loss < 0.005:
                 print('Loss is {0} @ {1}, finished training'.format(loss, epoch))
