@@ -89,7 +89,7 @@ class PickPredictionModel(object):
             })
 
         metric_values = results[4:3 + len(metric_values_tensors)]
-        return results[0], results[1], results[2], {
+        return results[0], results[1], results[3], {
             name: value
             for name, value in zip(self.metrics_array.keys(), metric_values)
         }
