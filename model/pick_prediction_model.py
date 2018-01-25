@@ -24,11 +24,11 @@ class PickPredictionModel(object):
             flat_input = tf.contrib.layers.flatten(self.inputs)
 
             hid_1 = tf.contrib.layers.fully_connected(flat_input, 1024, activation_fn=tf.nn.relu)
-            hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn')
+            hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn1')
             # hid_1 = tf.nn.dropout(hid_1, keep_prob=self.dropout)
 
             hid_2 = tf.contrib.layers.fully_connected(hid_1, 1024, activation_fn=tf.nn.relu)
-            hid_2 = tf.contrib.layers.batch_norm(hid_2, center=True, scale=True, is_training=True, scope='bn')
+            hid_2 = tf.contrib.layers.batch_norm(hid_2, center=True, scale=True, is_training=True, scope='bn2')
             # hid_2 = tf.nn.dropout(hid_2, keep_prob=self.dropout)
 
             hid_exit = hid_2
@@ -43,7 +43,8 @@ class PickPredictionModel(object):
                 self.loss = tf.losses.softmax_cross_entropy(self.target_results, self.logits)
 
             with tf.name_scope('accuracy'):
-                self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y, 1), tf.argmax(self.logits, 1)), 'float32'))
+                self.accuracy = tf.reduce_mean(
+                    tf.cast(tf.equal(tf.argmax(self.target_results, 1), tf.argmax(self.logits, 1)), 'float32'))
 
             with tf.variable_scope('Optimizer'):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
