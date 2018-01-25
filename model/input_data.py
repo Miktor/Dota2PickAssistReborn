@@ -12,15 +12,15 @@ class HeroEncodeMap(enum.IntEnum):
     LastHeroId = NUM_HEROES - 1
     Radiant = LastHeroId + 1
     Dire = Radiant + 1
-    HeroLane = Dire + 1
-    Total = HeroLane + 1
+    #HeroLane = Dire + 1
+    Total = NUM_HEROES
 
 
 class MatchEncodeMap(enum.IntEnum):
-    MatchDuration = 0
+    # MatchDuration = 0
     HeroStart = 0
-    HeroEnd = HeroStart + HeroEncodeMap.Total * 10 - 1
-    Total = HeroEnd + 1
+    HeroEnd = HeroStart + HeroEncodeMap.Total * 10
+    Total = HeroEnd
 
 
 class ResultsEncodeMap(enum.IntEnum):
@@ -48,13 +48,9 @@ class HeroDetails(object):
         self.is_roaming = bool(hero_data['is_roaming'])
 
     def encode(self, output_data):
-        output_data[self.hero_index] = 1
-        if self.side == RADIANT:
-            output_data[HeroEncodeMap.Radiant] = 1
-        else:
-            output_data[HeroEncodeMap.Dire] = 1
+        output_data[self.hero_index] = self.side
 
-        output_data[HeroEncodeMap.HeroLane] = self.lane
+        # output_data[HeroEncodeMap.HeroLane] = self.lane
 
 
 class InputData(object):

@@ -71,7 +71,7 @@ def main_old():
     picks_raw, results_raw = to_training_data(read())
     x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
-    model = PickPredictionModel(input_shape=(MatchEncodeMap.Total,), outputs=ResultsEncodeMap.Total)
+    model = PickPredictionModel(inputs=MatchEncodeMap.Total, outputs=ResultsEncodeMap.Total)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -94,12 +94,17 @@ def main_old():
             indices = np.random.randint(0, len(x_train), BATCH_SIZE)
             x_epoch = x_train[indices]
             y_epoch = y_train[indices]
-            loss, summ, pred, pred_log = model.train(sess, 0.5, x_epoch, y_epoch)
-            train_writer.add_summary(summ, epoch)
+            loss, summ = model.train(sess, 0.5, x_epoch, y_epoch)
+            # train_writer.add_summary(summ, epoch)
             # print(pred_log)
             # print(pred)
-            if epoch % 100 == 0 or loss < 0.01:
-                print('{0} Loss: {1}'.format(epoch, loss))
+
+            if epoch % 10 == 0:
+                train_writer.add_summary(summ, epoch)
+
+                if epoch % 100 == 0 or loss < 0.01:
+                    #metr = model.metrics(sess)
+                    print('{0} Loss: {1}'.format(epoch, loss))
 
             if loss < 0.01:
                 print('Loss is {0} @ {1}, finished training'.format(loss, epoch))
@@ -108,7 +113,8 @@ def main_old():
 
             epoch += 1
 
-        test_prediction(sess, model, x_test, y_test)
+        print(model.evaluate(sess, x_test, y_test))
+        # test_prediction(sess, model, x_test, y_test)
 
 
 import tensorflow as tf
