@@ -1,4 +1,4 @@
-from model.heroes import encode_hero, NUM_HEROES
+from model.heroes import encode_hero, NUM_HEROES, Lane, Role
 import numpy as np
 import enum
 
@@ -9,16 +9,14 @@ MATCH_DURATION_DEFAULT = 60 * 45.0  # 45 min as 1.0
 
 class HeroEncodeMap(enum.IntEnum):
     HeroId = 0
-    LastHeroId = NUM_HEROES - 1
-    Radiant = LastHeroId + 1
-    Dire = Radiant + 1
-    #HeroLane = Dire + 1
-    Total = NUM_HEROES
+    HeroLane = NUM_HEROES
+    HeroRole = HeroLane + Lane.Total
+    Total = HeroRole + Role.Total
 
 
 class MatchEncodeMap(enum.IntEnum):
-    # MatchDuration = 0
-    HeroStart = 0
+    MatchDuration = 0
+    HeroStart = 1
     HeroEnd = HeroStart + HeroEncodeMap.Total * 10
     Total = HeroEnd
 
@@ -50,7 +48,8 @@ class HeroDetails(object):
     def encode(self, output_data):
         output_data[self.hero_index] = self.side
 
-        # output_data[HeroEncodeMap.HeroLane] = self.lane
+        output_data[HeroEncodeMap.HeroLane + self.lane - 1] = 1
+        output_data[HeroEncodeMap.HeroRole + self.lane_role - 1] = 1
 
 
 class InputData(object):
@@ -71,7 +70,7 @@ class InputData(object):
         else:
             output_results[ResultsEncodeMap.Dire] = 1
 
-        # output_heroes[MatchEncodeMap.MatchDuration] = self.duration
+        output_heroes[MatchEncodeMap.MatchDuration] = self.duration
 
         for i, hero in enumerate(self.heroes):
             begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * i
