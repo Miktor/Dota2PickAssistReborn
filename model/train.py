@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 from typing import List
 from random import shuffle
-from tensorflow.python import debug as tf_debug
 
 from sklearn.model_selection import train_test_split
 
