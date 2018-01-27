@@ -12,7 +12,7 @@ class MCTSNode(object):
     def __init__(self, state):
         self.state = state
         self.children = []
-        self.actions = []
+        self.actions = None
 
         # Placeholders for numpy arrays
         self.edge_q = None
@@ -24,7 +24,7 @@ class MCTSNode(object):
                path_edge_indices: List[int]) -> Tuple['MCTSNode', List['MCTSNode'], List[int]]:
         # If current node does not have any actions
         # then select finishes - we found the leaf node
-        if len(self.actions) == 0:
+        if self.actions is None:
             return self, path_nodes, path_edge_indices
 
         # Otherwise, walk the tree by selecting actions with max Q + U
@@ -64,6 +64,10 @@ class MCTSNode(object):
         # to prevent evaluating nodes with low probabilities
         # (which will no likely to be used)
         self.actions = game_model.get_actions_for_state(self.state)
+
+        if self.actions is None:
+            # Last Node
+            return
 
         # Predict with any kind of estimator the probabilities
         # over action given current state
@@ -116,6 +120,8 @@ class MCTSNode(object):
 
             # Expand the node and get expanded node value (v)
             value = node.expand(game_model, estimator)
+            if value is None:
+                continue
 
             # Update N (visits), W (total value), and Q (average value)
             # for the whole path
