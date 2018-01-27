@@ -1,14 +1,13 @@
 import numpy as np
 from typing import List, Tuple
 
-MCTS_DIR_EPSILON = 0.1
-MCTS_DIR_EPSILON = 0.1
-MCTS_DIR_ALPHA = 0.1
-MCTS_C_PUCT = 0.1
+# Monte Carlo Tree Search
+MCTS_DIR_EPSILON = 0.2
+MCTS_DIR_ALPHA = 0.03
+MCTS_C_PUCT = 1.0
 
 
 class MCTSNode(object):
-
     def __init__(self, state):
         self.state = state
         self.children = []

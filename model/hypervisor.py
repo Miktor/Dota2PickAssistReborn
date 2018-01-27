@@ -1,4 +1,4 @@
-from enum import IntEnum, auto
+from enum import IntEnum
 
 import numpy as np
 
@@ -8,14 +8,15 @@ from model.mcts import MCTSNode
 from model.pick_prediction_model import PickPredictionModel
 from model.picker_model import GraphPredictionModel
 from model.heroes import NUM_HEROES
+from utils.utils import GenericMemory
 
 
 
 class GamePhases(IntEnum):
-    SelectHero = auto()
-    SelectHeroRoleAndLane = auto()
-    Ban = auto()
-    Play = auto()
+    SelectHero = 0
+    SelectHeroRoleAndLane = 1
+    Ban = 2
+    Play = 3
 
 
 
@@ -82,6 +83,9 @@ class GameState(object):
     def get_next_state(self, action: Action):
         return self.game_mode.next(self, action)
 
+    def is_finished(self):
+        return len(self.picked_heroes) == 5
+
 
 
 class AllPickMode(GameMode):
@@ -108,7 +112,6 @@ class AllPickMode(GameMode):
 
 
 class GameModel(object):
-
     def get_state_for_action(self, state: GameState, action: Action):
         return state.get_next_state(action)
 
@@ -164,6 +167,64 @@ def play():
     print('done')
 
 
+class MatchResultPredictor(object):
+    def predict_match_result(self, radiant_pick, dire_pick):
+        return [0.5, 0.5]
+
+
+def action_probabilities_to_policy(probabilities: np.ndarray, legal_actions) -> np.ndarray:
+    return [0, 0, 0, .2, 0.5]
+
+
+class Simulation(object):
+    def __init__(self, memory_size=10000, mcst_per_turn_simulations=100):
+        self.memory = GenericMemory(memory_size, [
+            ('state', np.float32, ()),
+            ('policy', np.float32, ()),
+            ('value', np.float32, ()),
+        ])
+        self.mcst_per_turn_simulations = mcst_per_turn_simulations
+
+    def run(self, num_games=100):
+        for game_i in range(num_games):
+            s, p, r = self.play_game()
+            print(game_i)
+
+    def play_game(self):
+        estimator = GameResultEstimator()
+        game_model = GameModel()
+        game_mode = AllPickMode()
+        node = MCTSNode(game_mode.first_state())
+        match_result_predictor = MatchResultPredictor()
+
+        states = []
+        policies = []
+
+        while True:
+            # Run MCST simulations
+            node.run(game_model, estimator, self.mcst_per_turn_simulations)
+
+            # Get move and selected node from MCTS
+            move, new_node, probabilities = node.choose_action()
+
+            # S, Policy,
+            policies.append(action_probabilities_to_policy(probabilities, node.actions))
+            states.append(node.state)
+
+            if new_node.state.is_finished():
+                result = match_result_predictor.predict_match_result(new_node.state.picked_heroes,
+                                                                     new_node.state.picked_heroes)
+                radiant_value = result[0]
+                dire_value = result[1]
+
+                outcomes = np.zeros(len(policies), dire_value)
+                # Outcomes for Radiant, since radiant moves first
+                outcomes[::2] = radiant_value
+                return states, policies, outcomes
+            else:
+                node = new_node
+
 
 if __name__ == '__main__':
-    play()
+    simulation = Simulation()
+    simulation.run(100)
