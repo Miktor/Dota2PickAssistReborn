@@ -133,6 +133,9 @@ class GameResultEstimator(object):
             end_i = begin_i + HeroEncodeMap.Total
             hero.encode(initial_state_data[begin_i:end_i])
 
+        if actions is None:
+            return np.tile(initial_state_data, 1)
+
         output_data = np.tile(initial_state_data, [len(actions), 1])
 
         for i, action in enumerate(actions):
@@ -145,7 +148,7 @@ class GameResultEstimator(object):
     def predict(self, state: GameState, actions):
         data_to_predict = GameResultEstimator.build_data(state, actions)
 
-        return np.full((len(actions)), 0.5), 0.5
+        return np.full(data_to_predict.shape[0], 0.5), 0.5
 
 if __name__ == '__main__':
     pass

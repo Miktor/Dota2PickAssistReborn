@@ -84,6 +84,7 @@ class Simulation(object):
                 outcomes[::2] = radiant_value
                 return states, policies, outcomes
             else:
+                assert len(new_node.state.picked_heroes) > len(node.state.picked_heroes)
                 node = new_node
 
 
