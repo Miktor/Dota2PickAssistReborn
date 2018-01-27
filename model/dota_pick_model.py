@@ -8,8 +8,8 @@ from model.picker_model import GraphPredictionModel
 
 
 class GamePhases(IntEnum):
-    SelectHero = 0
-    SelectHeroRoleAndLane = 1
+    RadiantSelectHero = 0
+    DireSelectHero = 1
     Ban = 2
     Play = 3
 
@@ -68,9 +68,10 @@ class GameMode(object):
 
 class GameState(object):
 
-    def __init__(self, game_mode: GameMode, phase: GamePhases, picked_heroes=[], banned_heroes=[]):
+    def __init__(self, game_mode: GameMode, phase: GamePhases, radiant_heroes=[], dire_heroes=[], banned_heroes=[]):
         self.current_phase = phase
-        self.picked_heroes = picked_heroes
+        self.radiant_heroes = radiant_heroes
+        self.dire_heroes = dire_heroes
         self.banned_heroes = banned_heroes
 
         self.game_mode = game_mode
@@ -79,7 +80,7 @@ class GameState(object):
         return self.game_mode.next(self, action)
 
     def is_finished(self):
-        return len(self.picked_heroes) == 5
+        return len(self.radiant_heroes) == len(self.dire_heroes) == 5
 
 
 
