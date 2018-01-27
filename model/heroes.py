@@ -125,6 +125,7 @@ assert NUM_HEROES == 115
 
 
 class Lane(enum.IntEnum):
+    NoLane = 0
     Bot = 1
     Mid = 2
     Top = 3
@@ -134,6 +135,7 @@ class Lane(enum.IntEnum):
 
 
 class Role(enum.IntEnum):
+    NoRole = 0
     Carry = 1
     Support = 2
     Offlane = 3
