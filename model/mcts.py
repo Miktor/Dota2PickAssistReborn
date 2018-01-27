@@ -64,9 +64,11 @@ class MCTSNode(object):
         # (which will no likely to be used)
         self.actions = game_model.get_actions_for_state(self.state)
 
-        if self.actions is None:
-            # Last Node
-            return
+        # State is terminal, node can't have any edges
+        # Predict node's value and return
+        if not self.actions:
+            _, value = estimator.predict(self.state, self.actions)
+            return value
 
         # Predict with any kind of estimator the probabilities
         # over action given current state
@@ -119,8 +121,6 @@ class MCTSNode(object):
 
             # Expand the node and get expanded node value (v)
             value = node.expand(game_model, estimator)
-            if value is None:
-                continue
 
             # Update N (visits), W (total value), and Q (average value)
             # for the whole path
