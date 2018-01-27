@@ -115,7 +115,6 @@ class GameModel(object):
     def get_actions_for_state(self, state: GameState):
         if state.current_phase == GamePhases.SelectHero:
             if len(state.picked_heroes) == 5:
-                print('Pick: {}'.format([h.hero for h in state.picked_heroes]))
                 return
             return list(map(SelectHero, Hero))
         pass
@@ -159,7 +158,12 @@ def play():
     state = game_mode.first_state()
 
     mcst = MCTSNode(state)
-    mcst.run(game_model, estimator, 100)
+
+    for x in range(1, 6):
+        mcst.run(game_model, estimator, 100)
+        action, child, _ = mcst.choose_action()
+        print('Pick #{}: {}'.format(x, str(action.hero.hero)))
+        mcst = child
 
     print('done')
 
