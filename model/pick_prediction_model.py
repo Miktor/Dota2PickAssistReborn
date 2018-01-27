@@ -6,12 +6,11 @@ MODEL_PATH = './trained-model/pick_prediction'
 LEARNING_RATE = 5 * 1e-5
 L2_BETA = 0.001
 
-METRICS = {'auc': tf.metrics.auc}
-
-
 class PickPredictionModel(object):
 
     def __init__(self, inputs, outputs):
+        self.histograms = []
+
         self.metrics_array = {}
         self.metrics_update_array = []
 
@@ -36,7 +35,6 @@ class PickPredictionModel(object):
         with tf.variable_scope('Head'):
             self.logits = tf.contrib.layers.fully_connected(hid_exit, outputs)
             self.predictions = tf.nn.softmax(self.logits)
-            # self.logits = tf.Print(self.logits, [self.logits], message="logits: ")
 
         with tf.variable_scope('Optimization'):
             with tf.variable_scope('Loss'):
@@ -50,53 +48,36 @@ class PickPredictionModel(object):
                 optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
                 self.optimize_op = optimizer.minimize(self.loss)
 
-        trainable = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        trainable_weights = [v for v in trainable if 'weights' in v.name]
-        for tv in trainable_weights:
-            tf.summary.histogram(tv.name, tv)
-
         with tf.variable_scope('Stats'):
-            for metric_name, metric_fn in METRICS.items():
-                metric_val, metric_up = metric_fn(predictions=self.predictions, labels=self.target_results)
-                self.metrics_array[metric_name] = (metric_val, metric_up)
-                tf.summary.scalar(metric_name, metric_val)
-                #tf.summary.scalar(metric_name, self.metrics_array[metric_name][0])
-
             tf.summary.scalar('accuracy', self.accuracy)
             tf.summary.scalar('cross_entropy_loss', self.loss)
-            tf.summary.histogram('logits', self.logits)
-            tf.summary.histogram('predictions', self.predictions)
+            auc, auc_op = tf.metrics.auc(predictions=self.predictions, labels=self.target_results)
+            tf.summary.scalar('auc', auc)
 
             self.merged_summaries = tf.summary.merge_all()
+
+        trainable = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        trainable_weights = [v for v in trainable if 'weights' in v.name]
+        self.histograms = [tf.summary.histogram(tv.name, tv) for tv in trainable_weights]
+        # self.histograms += [tf.summary.histogram('logits', self.logits), tf.summary.histogram('predictions', self.predictions)]
+        self.histograms = tf.summary.merge(self.histograms)
 
         with tf.variable_scope('Saver'):
             self.saver = tf.train.Saver()
 
     def train(self, sess: tf.Session, dropout, inputs, results):
-        metric_values_tensors = []
-        metric_update_ops = []
-        for value_tensor, update_op in self.metrics_array.values():
-            metric_values_tensors.append(value_tensor)
-            metric_update_ops.append(update_op)
-
-        results = sess.run(
-            [self.loss, self.accuracy, self.optimize_op, self.merged_summaries] + metric_values_tensors +
-            metric_update_ops,
+        loss, accuracy, _, merged_summaries = sess.run(
+            [self.loss, self.accuracy, self.optimize_op, self.merged_summaries],
             feed_dict={
                 self.dropout: dropout,
                 self.inputs: inputs,
                 self.target_results: results
             })
 
-        metric_values = results[4:3 + len(metric_values_tensors)]
-        return results[0], results[1], results[3], {
-            name: value
-            for name, value in zip(self.metrics_array.keys(), metric_values)
-        }
+        return loss, accuracy, merged_summaries
 
-    def get_summaries(self, sess: tf.Session):
-        summ = sess.run([self.merged_summaries])
-        return summ
+    def get_histograms(self, sess: tf.Session):
+        return sess.run(self.histograms)
 
     def predict(self, sess: tf.Session, inputs):
         return sess.run([self.predictions], feed_dict={self.inputs: inputs})
