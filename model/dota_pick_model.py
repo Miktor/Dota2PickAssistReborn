@@ -1,5 +1,6 @@
 import numpy as np
 
+from enum import IntEnum
 from model.heroes import Hero, Lane, NUM_HEROES, Role
 from model.input_data import HeroEncodeMap, MatchEncodeMap
 from model.picker_model import GraphPredictionModel
@@ -125,6 +126,7 @@ class GameResultEstimator(object):
 
     @staticmethod
     def build_data(state: GameState, actions):
+
         initial_state_data = np.zeros(shape=[HeroEncodeMap.Total * 5 + ActionMap.Total], dtype=np.float32)
         for i, hero in enumerate(state.picked_heroes):
             begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * i
