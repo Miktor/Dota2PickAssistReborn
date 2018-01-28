@@ -2,28 +2,35 @@ import numpy as np
 from typing import List, Tuple
 
 # Monte Carlo Tree Search
-MCTS_DIR_EPSILON = 0.2
-MCTS_DIR_ALPHA = 0.03
+# Dirichlet noise parameters for adding noise to select probabilities
+MCTS_DIRICHLET_EPSILON = 0.2
+MCTS_DIRICHLET_ALPHA = 0.03
+
+# This regulates exploration, 0 - no exploration, 1 - maximum exploration
 MCTS_C_PUCT = 1.0
 
 
 class MCTSNode(object):
     def __init__(self, state):
-        self.state = state
-        self.children = []
-        self.actions = None
+        self.state = state  # Node payload
+        self.children = None  # Array of child nodes
+        self.actions = None  # Possible actions from this node
+        self.is_expanded = False  # Is node expanded
+        self.value = None  # Value of the expanded node
 
         # Placeholders for numpy arrays
-        self.edge_q = None
-        self.edge_w = None
-        self.edge_p = None
-        self.edge_n = None
+        # Each array represents some values for each possible action (edge)
+        self.edge_q = None  # Average edge value
+        self.edge_w = None  # Total edge value
+        self.edge_p = None  # Edge probability
+        self.edge_n = None  # Number of edge visitations
 
     def select(self, game_model, path_nodes: List['MCTSNode'],
                path_edge_indices: List[int]) -> Tuple['MCTSNode', List['MCTSNode'], List[int]]:
-        # If current node does not have any actions
+        # If current node is not expanded or current node is terminal (no actions)
         # then select finishes - we found the leaf node
-        if self.actions is None:
+        # Ends the recursion
+        if not self.is_expanded or not self.actions:
             return self, path_nodes, path_edge_indices
 
         # Otherwise, walk the tree by selecting actions with max Q + U
@@ -32,8 +39,8 @@ class MCTSNode(object):
         n_sqrt_sum = np.maximum(n_sqrt_sum, 1.0)  # Avoid U == 0, if all N(s,b) == 0
 
         # Add Dirichlet noise to move probabilities
-        p = (1.0 - MCTS_DIR_EPSILON) * self.edge_p + \
-            MCTS_DIR_EPSILON * np.random.dirichlet([MCTS_DIR_ALPHA] * len(self.edge_p))
+        p = (1.0 - MCTS_DIRICHLET_EPSILON) * self.edge_p + \
+            MCTS_DIRICHLET_EPSILON * np.random.dirichlet([MCTS_DIRICHLET_ALPHA] * len(self.edge_p))
 
         u = MCTS_C_PUCT * p * n_sqrt_sum / (1.0 + self.edge_n)
         selected = np.argmax(self.edge_q + u)  # type: int
@@ -64,15 +71,15 @@ class MCTSNode(object):
         # (which will no likely to be used)
         self.actions = game_model.get_actions_for_state(self.state)
 
-        # State is terminal, node can't have any edges
-        # Predict node's value and return
+        # State is terminal (no further actions), node can't have any edges so
+        # just predict node's value and return
         if not self.actions:
-            _, value = estimator.predict(self.state, self.actions)
-            return value
+            _, self.value = estimator.predict(self.state, self.actions)
+            return
 
         # Predict with any kind of estimator the probabilities
         # over action given current state
-        self.edge_p, value = estimator.predict(self.state, self.actions)
+        self.edge_p, self.value = estimator.predict(self.state, self.actions)
 
         # Add child edges and node-placeholders
         action_num = len(self.actions)
@@ -81,9 +88,8 @@ class MCTSNode(object):
         self.edge_n = np.zeros(action_num, dtype=np.uint8)
         self.children = np.full(action_num, None, dtype=np.object)
 
-        # Return the value of the expanded node
-        # To update parent nodes and edges along the selected path
-        return value
+        # Mark this node as expanded
+        self.is_expanded = True
 
     def update_edge(self, edge_idx: int, value: float):
         # Updates the value of the edge
@@ -110,22 +116,24 @@ class MCTSNode(object):
         # Probabilistic policy: select edge with weights of N^(1/tau)
         exp_n = np.power(self.edge_n, 1.0 / tau)
         probabilities = exp_n / exp_n.sum()
-        idx = np.random.choice(np.arange(len(self.actions)), p=probabilities)
+        idx = np.random.choice(len(self.actions), p=probabilities)
         return self.actions[idx], self.children[idx], probabilities
 
     def run(self, game_model, estimator, simulations: int):
         # Run select, expand and propagate multiple times
         for sim_i in range(simulations):
-            # Select the node to expand, and get the path edges
+            # Select target node to expand or terminal node, and get the path edges to target node from this node
             node, path_nodes, path_edges = self.select(game_model, [], [])
 
-            # Expand the node and get expanded node value (v)
-            value = node.expand(game_model, estimator)
+            # If node is not expanded
+            if not node.is_expanded:
+                # Expand the node - it will create edges and get value for the node
+                node.expand(game_model, estimator)
 
             # Update N (visits), W (total value), and Q (average value)
-            # for the whole path
+            # for the whole path from this node to target, even if target node is terminal
             for node, edge_idx in zip(path_nodes, path_edges):
-                node.update_edge(edge_idx, value)
+                node.update_edge(edge_idx, node.value)
 
 
 if __name__ == '__main__':
