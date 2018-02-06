@@ -48,7 +48,7 @@ class PickPredictionModel(object):
 
                 with tf.variable_scope('Optimizer'):
                     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
-                    self.picks_optimize_op = optimizer.minimize(self.picks_loss)
+                    self.picks_optimize_op = optimizer.minimize(self.picks_loss, var_list=tf.trainable_variables('PickPredictionModel'))
 
             with tf.variable_scope('Stats'):
                 tf.summary.scalar('accuracy', self.picks_accuracy)
