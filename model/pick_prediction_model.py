@@ -117,8 +117,11 @@ class PickPredictionModel(object):
     def get_histograms(self, sess: tf.Session):
         return sess.run(self.histograms)
 
-    def predict(self, sess: tf.Session, picks_inputs):
+    def predict_win(self, sess: tf.Session, inputs):
         return sess.run([self.picks_predictions], feed_dict={self.picks_inputs: inputs})
+
+    def predict_picks(self, sess: tf.Session, inputs):
+        return sess.run([self.policy_predictions], feed_dict={self.policy_inputs: inputs})
 
     def evaluate(self, sess: tf.Session, inputs, target_results):
         metric_values_tensors = []

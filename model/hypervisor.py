@@ -8,9 +8,10 @@ import tensorflow as tf
 
 class MatchResultPredictor(object):
     def __init__(self):
-        self.model = PickPredictionModel(inputs=MatchEncodeMap.Total, outputs=ResultsEncodeMap.Total)
+        self.sess = None
+        self.model = PickPredictionModel(picks_inputs=MatchEncodeMap.Total, picks_outputs=ResultsEncodeMap.Total)
 
-    def predict_match_result(self, sess, radiant_pick, dire_pick):
+    def predict_match_result(self, radiant_pick, dire_pick):
         predict_data = np.zeros(shape=[1, MatchEncodeMap.Total], dtype=np.float32)
         encode_match(predict_data[0, :], MATCH_DURATION_DEFAULT)
 
@@ -19,9 +20,10 @@ class MatchResultPredictor(object):
         for i, hero in enumerate(dire_pick):
             encode_hero(predict_data[0, :], i + 5, hero.hero, DIRE, hero.lane, hero.role, False)
 
-        return self.model.predict(sess, predict_data)
+        return self.model.predict_win(self.sess, predict_data)
 
-
+    def predict(self, state, actions):
+        return self.model.predict_picks(self.sess, actions)
 
 
 def action_probabilities_to_policy(probabilities: np.ndarray, legal_actions) -> np.ndarray:
@@ -40,7 +42,6 @@ class Simulation(object):
         self.mcst_per_turn_simulations = mcst_per_turn_simulations
 
     def run(self, num_games=100):
-        estimator = GameResultEstimator()
         match_result_predictor = MatchResultPredictor()
 
         game_model = GameModel()
@@ -51,14 +52,14 @@ class Simulation(object):
         config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
         with tf.Session(config=config) as sess:
-
+            match_result_predictor.sess = sess
             match_result_predictor.model.load_if_exists(sess)
 
             for game_i in range(num_games):
-                s, p, r = self.play_game(sess, estimator, match_result_predictor, game_model, game_mode)
+                s, p, r = self.play_game(sess, match_result_predictor, game_model, game_mode)
                 print(game_i)
 
-    def play_game(self, sess: tf.Session, estimator, match_result_predictor, game_model, game_mode):
+    def play_game(self, sess: tf.Session, match_result_predictor, game_model, game_mode):
         node = MCTSNode(game_mode.first_state())
 
         states = []
@@ -66,7 +67,7 @@ class Simulation(object):
 
         while True:
             # Run MCST simulations
-            node.run(game_model, estimator, self.mcst_per_turn_simulations)
+            node.run(game_model, match_result_predictor, self.mcst_per_turn_simulations)
 
             # Get move and selected node from MCTS
             move, new_node, probabilities = node.choose_action()
