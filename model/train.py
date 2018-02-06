@@ -83,7 +83,7 @@ def main_old():
         timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H-%M')
         train_writer = tf.summary.FileWriter(
             os.path.join('C:\\Development\\logs', timestamp), graph=tf.get_default_graph())
-        # model.load_if_exists(sess)
+        model.load_if_exists(sess)
 
         epoch = 0
         while True:

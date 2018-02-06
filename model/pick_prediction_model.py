@@ -6,6 +6,7 @@ MODEL_PATH = './trained-model/pick_prediction'
 LEARNING_RATE = 5 * 1e-5
 L2_BETA = 0.001
 
+
 class PickPredictionModel(object):
 
     def __init__(self, inputs, outputs):
@@ -119,8 +120,8 @@ class PickPredictionModel(object):
             if os.path.exists(path + '.meta'):
                 print('Model already exists, loading: {0}'.format(path))
                 self.load(sess, path)
-        except Exception:
-            print('Failed to load!')
+        except Exception as e:
+            print('Failed to load! {}'.format(e))
 
 
 if __name__ == '__main__':

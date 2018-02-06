@@ -9,7 +9,6 @@ import tensorflow as tf
 class MatchResultPredictor(object):
     def __init__(self):
         self.model = PickPredictionModel(inputs=MatchEncodeMap.Total, outputs=ResultsEncodeMap.Total)
-        self.model.load_if_exists(sess)
 
     def predict_match_result(self, sess, radiant_pick, dire_pick):
         predict_data = np.zeros(shape=[1, MatchEncodeMap.Total], dtype=np.float32)
@@ -40,18 +39,27 @@ class Simulation(object):
         ])
         self.mcst_per_turn_simulations = mcst_per_turn_simulations
 
-    def run(self, sess: tf.Session, num_games=100):
+    def run(self, num_games=100):
         estimator = GameResultEstimator()
+        match_result_predictor = MatchResultPredictor()
+
         game_model = GameModel()
         game_mode = AllPickMode()
 
-        for game_i in range(num_games):
-            s, p, r = self.play_game(sess, estimator, game_model, game_mode)
-            print(game_i)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
-    def play_game(self, sess: tf.Session, estimator, game_model, game_mode):
+        with tf.Session(config=config) as sess:
+
+            match_result_predictor.model.load_if_exists(sess)
+
+            for game_i in range(num_games):
+                s, p, r = self.play_game(sess, estimator, match_result_predictor, game_model, game_mode)
+                print(game_i)
+
+    def play_game(self, sess: tf.Session, estimator, match_result_predictor, game_model, game_mode):
         node = MCTSNode(game_mode.first_state())
-        match_result_predictor = MatchResultPredictor()
 
         states = []
         policies = []
@@ -86,10 +94,4 @@ class Simulation(object):
 if __name__ == '__main__':
 
     simulation = Simulation()
-
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    config.gpu_options.per_process_gpu_memory_fraction = 0.4
-
-    with tf.Session(config=config) as sess:
-        simulation.run(sess, 100)
+    simulation.run()
