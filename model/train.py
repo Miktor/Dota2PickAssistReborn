@@ -1,17 +1,14 @@
 import json
-import enum
 import os
 import datetime
 import numpy as np
 import tensorflow as tf
-from typing import List
-from random import shuffle
 
 from sklearn.model_selection import train_test_split
 
 from model.pick_prediction_model import PickPredictionModel
-from model.heroes import encode_hero, load_heroes, Hero
-from model.input_data import InputData, MatchEncodeMap, ResultsEncodeMap
+from dota.heroes import Hero
+from dota.input_data import encode_from_json, MatchEncodeMap, ResultsEncodeMap
 import model.keras_model as k
 from keras import backend as back
 
@@ -32,7 +29,7 @@ def to_training_data(data):
     training_results = np.zeros(shape=[num_samples, ResultsEncodeMap.Total], dtype=np.float32)
 
     for i, sample in enumerate(data):
-        InputData(sample).encode(training_heroes[i, :], training_results[i, :])
+        encode_from_json(sample, training_heroes[i, :], training_results[i, :])
 
     return training_heroes, training_results
 
@@ -118,7 +115,6 @@ def main_old():
 
 import tensorflow as tf
 
-from keras import backend as K
 
 
 def main():

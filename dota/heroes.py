@@ -144,7 +144,7 @@ class Role(enum.IntEnum):
     Total = 5
 
 
-def encode_hero(hero_id):
+def get_hero_id(hero_id):
     for idx, e in enumerate(list(Hero)):
         if e.value == hero_id:
             return idx

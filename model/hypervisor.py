@@ -1,33 +1,27 @@
-import numpy as np
-
 from model.mcts import MCTSNode
 from utils.utils import GenericMemory
-from model.dota_pick_model import *
-
-
-def play():
-    estimator = GameResultEstimator()
-
-    game_model = GameModel()
-    game_mode = AllPickMode()
-    state = game_mode.first_state()
-
-    mcst = MCTSNode(state)
-
-    for x in range(1, 6):
-        mcst.run(game_model, estimator, 100)
-        action, child, _ = mcst.choose_action()
-        print('Pick #{}: {}'.format(x, str(action.hero.hero)))
-        mcst = child
-
-    print('done')
-
+from dota.dota_pick_model import *
+from dota.input_data import *
+from model.pick_prediction_model import PickPredictionModel
+import tensorflow as tf
 
 
 class MatchResultPredictor(object):
+    def __init__(self):
+        self.model = PickPredictionModel(inputs=MatchEncodeMap.Total, outputs=ResultsEncodeMap.Total)
+        self.model.load_if_exists(sess)
 
-    def predict_match_result(self, radiant_pick, dire_pick):
-        return [0.5, 0.5]
+    def predict_match_result(self, sess, radiant_pick, dire_pick):
+        predict_data = np.zeros(shape=[1, MatchEncodeMap.Total], dtype=np.float32)
+        encode_match(predict_data[0, :], MATCH_DURATION_DEFAULT)
+
+        for i, hero in enumerate(radiant_pick):
+            encode_hero(predict_data[0, :], i, hero.hero, RADIANT, hero.lane, hero.role, False)
+        for i, hero in enumerate(dire_pick):
+            encode_hero(predict_data[0, :], i + 5, hero.hero, DIRE, hero.lane, hero.role, False)
+
+        return self.model.predict(sess, predict_data)
+
 
 
 
@@ -46,16 +40,16 @@ class Simulation(object):
         ])
         self.mcst_per_turn_simulations = mcst_per_turn_simulations
 
-    def run(self, num_games=100):
+    def run(self, sess: tf.Session, num_games=100):
         estimator = GameResultEstimator()
         game_model = GameModel()
         game_mode = AllPickMode()
 
         for game_i in range(num_games):
-            s, p, r = self.play_game(estimator, game_model, game_mode)
+            s, p, r = self.play_game(sess, estimator, game_model, game_mode)
             print(game_i)
 
-    def play_game(self, estimator, game_model, game_mode):
+    def play_game(self, sess: tf.Session, estimator, game_model, game_mode):
         node = MCTSNode(game_mode.first_state())
         match_result_predictor = MatchResultPredictor()
 
@@ -74,8 +68,8 @@ class Simulation(object):
             states.append(node.state)
 
             if new_node.state.is_finished():
-                result = match_result_predictor.predict_match_result(new_node.state.picked_heroes,
-                                                                     new_node.state.picked_heroes)
+                result = match_result_predictor.predict_match_result(sess, new_node.state.radiant_heroes,
+                                                                     new_node.state.dire_heroes)
                 radiant_value = result[0]
                 dire_value = result[1]
 
@@ -84,11 +78,18 @@ class Simulation(object):
                 outcomes[::2] = radiant_value
                 return states, policies, outcomes
             else:
-                assert len(new_node.state.picked_heroes) > len(node.state.picked_heroes)
+                assert len(new_node.state.radiant_heroes) > len(node.state.radiant_heroes) or len(new_node.state.dire_heroes) > len(node.state.dire_heroes)
                 node = new_node
 
 
 
 if __name__ == '__main__':
+
     simulation = Simulation()
-    simulation.run(100)
+
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.4
+
+    with tf.Session(config=config) as sess:
+        simulation.run(sess, 100)

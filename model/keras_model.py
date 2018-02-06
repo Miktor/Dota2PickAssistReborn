@@ -23,3 +23,6 @@ class KerasModel(object):
 
     def evaluate(self, inputs, true_results, batch_size=128):
         return self.model.evaluate(inputs, true_results, batch_size=batch_size)
+
+if __name__ == '__main__':
+    pass

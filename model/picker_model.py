@@ -15,62 +15,63 @@ class GraphPredictionModel(object):
         self.metrics_array = {}
         self.metrics_update_array = []
 
-        with tf.variable_scope('Inputs'):
-            self.inputs = tf.placeholder(dtype=tf.float32, shape=[None, inputs])
-            self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs])
-            self.dropout = tf.placeholder(dtype=tf.float32)
+        with tf.variable_scope('GraphPredictionModel'):
+            with tf.variable_scope('Inputs'):
+                self.inputs = tf.placeholder(dtype=tf.float32, shape=[None, inputs])
+                self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs])
+                self.dropout = tf.placeholder(dtype=tf.float32)
 
-        with tf.variable_scope('Base'):
-            flat_input = tf.contrib.layers.flatten(self.inputs)
+            with tf.variable_scope('Base'):
+                flat_input = tf.contrib.layers.flatten(self.inputs)
 
-            hid_1 = tf.contrib.layers.fully_connected(flat_input, 1024, activation_fn=tf.nn.relu)
-            hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn1')
-            # hid_1 = tf.nn.dropout(hid_1, keep_prob=self.dropout)
+                hid_1 = tf.contrib.layers.fully_connected(flat_input, 1024, activation_fn=tf.nn.relu)
+                hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn1')
+                # hid_1 = tf.nn.dropout(hid_1, keep_prob=self.dropout)
 
-            hid_2 = tf.contrib.layers.fully_connected(hid_1, 1024, activation_fn=tf.nn.relu)
-            hid_2 = tf.contrib.layers.batch_norm(hid_2, center=True, scale=True, is_training=True, scope='bn2')
-            # hid_2 = tf.nn.dropout(hid_2, keep_prob=self.dropout)
+                hid_2 = tf.contrib.layers.fully_connected(hid_1, 1024, activation_fn=tf.nn.relu)
+                hid_2 = tf.contrib.layers.batch_norm(hid_2, center=True, scale=True, is_training=True, scope='bn2')
+                # hid_2 = tf.nn.dropout(hid_2, keep_prob=self.dropout)
 
-            hid_exit = hid_2
+                hid_exit = hid_2
 
-        with tf.variable_scope('Head'):
-            self.logits = tf.contrib.layers.fully_connected(hid_exit, outputs)
-            self.predictions = tf.nn.softmax(self.logits)
-            # self.logits = tf.Print(self.logits, [self.logits], message="logits: ")
+            with tf.variable_scope('Head'):
+                self.logits = tf.contrib.layers.fully_connected(hid_exit, outputs)
+                self.predictions = tf.nn.softmax(self.logits)
+                # self.logits = tf.Print(self.logits, [self.logits], message="logits: ")
 
-        with tf.variable_scope('Optimization'):
-            with tf.variable_scope('Loss'):
-                self.loss = tf.losses.softmax_cross_entropy(self.target_results, self.logits)
+            with tf.variable_scope('Optimization'):
+                with tf.variable_scope('Loss'):
+                    self.loss = tf.losses.softmax_cross_entropy(self.target_results, self.logits)
 
-            with tf.name_scope('accuracy'):
-                self.accuracy = tf.reduce_mean(
-                    tf.cast(tf.equal(tf.argmax(self.target_results, 1), tf.argmax(self.logits, 1)), 'float32'))
+                with tf.name_scope('accuracy'):
+                    self.accuracy = tf.reduce_mean(
+                        tf.cast(tf.equal(tf.argmax(self.target_results, 1), tf.argmax(self.logits, 1)), 'float32'))
 
-            with tf.variable_scope('Optimizer'):
-                optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
-                self.optimize_op = optimizer.minimize(self.loss)
+                with tf.variable_scope('Optimizer'):
+                    optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
+                    self.optimize_op = optimizer.minimize(self.loss)
 
-        trainable = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        trainable_weights = [v for v in trainable if 'weights' in v.name]
-        for tv in trainable_weights:
-            tf.summary.histogram(tv.name, tv)
+            trainable = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            trainable_weights = [v for v in trainable if 'weights' in v.name]
+            for tv in trainable_weights:
+                tf.summary.histogram(tv.name, tv)
 
-        with tf.variable_scope('Stats'):
-            for metric_name, metric_fn in METRICS.items():
-                metric_val, metric_up = metric_fn(predictions=self.predictions, labels=self.target_results)
-                self.metrics_array[metric_name] = (metric_val, metric_up)
-                tf.summary.scalar(metric_name, metric_val)
-                #tf.summary.scalar(metric_name, self.metrics_array[metric_name][0])
+            with tf.variable_scope('Stats'):
+                for metric_name, metric_fn in METRICS.items():
+                    metric_val, metric_up = metric_fn(predictions=self.predictions, labels=self.target_results)
+                    self.metrics_array[metric_name] = (metric_val, metric_up)
+                    tf.summary.scalar(metric_name, metric_val)
+                    #tf.summary.scalar(metric_name, self.metrics_array[metric_name][0])
 
-            tf.summary.scalar('accuracy', self.accuracy)
-            tf.summary.scalar('cross_entropy_loss', self.loss)
-            tf.summary.histogram('logits', self.logits)
-            tf.summary.histogram('predictions', self.predictions)
+                tf.summary.scalar('accuracy', self.accuracy)
+                tf.summary.scalar('cross_entropy_loss', self.loss)
+                tf.summary.histogram('logits', self.logits)
+                tf.summary.histogram('predictions', self.predictions)
 
-            self.merged_summaries = tf.summary.merge_all()
+                self.merged_summaries = tf.summary.merge_all()
 
-        with tf.variable_scope('Saver'):
-            self.saver = tf.train.Saver()
+            with tf.variable_scope('Saver'):
+                self.saver = tf.train.Saver()
 
     def train(self, sess: tf.Session, dropout, inputs, results):
         metric_values_tensors = []

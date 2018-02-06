@@ -1,8 +1,8 @@
 import numpy as np
 
 from enum import IntEnum
-from model.heroes import Hero, Lane, NUM_HEROES, Role
-from model.input_data import HeroEncodeMap, MatchEncodeMap
+from dota.heroes import Hero, Lane, NUM_HEROES, Role
+from dota.input_data import HeroEncodeMap, MatchEncodeMap
 from model.picker_model import GraphPredictionModel
 
 
@@ -60,7 +60,6 @@ class SelectHero(Action):
 
 
 class GameMode(object):
-
     def __init__(self, phase: GamePhases):
         self.current_phase = phase
 
@@ -69,12 +68,12 @@ class GameMode(object):
 class GameState(object):
 
     def __init__(self, game_mode: GameMode, phase: GamePhases, radiant_heroes=[], dire_heroes=[], banned_heroes=[]):
-        self.current_phase = phase
+        self.current_phase = phase  # type: GamePhases
         self.radiant_heroes = radiant_heroes
         self.dire_heroes = dire_heroes
         self.banned_heroes = banned_heroes
 
-        self.game_mode = game_mode
+        self.game_mode = game_mode  # type: GameMode
 
     def get_next_state(self, action: Action):
         return self.game_mode.next(self, action)
@@ -87,23 +86,38 @@ class GameState(object):
 class AllPickMode(GameMode):
 
     def __init__(self):
-        super(AllPickMode, self).__init__(GamePhases.SelectHero)
+        super(AllPickMode, self).__init__(GamePhases.RadiantSelectHero)
 
     def next(self, current_state: GameState, action: Action):
-        if len(current_state.picked_heroes) == 5:
+        if len(current_state.radiant_heroes) == 5 and len(current_state.dire_heroes) == 5:
             return GamePhases.Start
         else:
-            # create new instance of state values
-            picked_heroes = list(current_state.picked_heroes)
             banned_heroes = list(current_state.banned_heroes)
+            radiant_heroes = current_state.radiant_heroes
+            dire_heroes = current_state.dire_heroes
+
+            # create new instance of state values
+            new_phase = GamePhases.RadiantSelectHero
+            if(current_state.current_phase == GamePhases.RadiantSelectHero):
+                radiant_heroes = list(current_state.radiant_heroes)
+                radiant_heroes.append(action.hero)
+                new_phase = GamePhases.DireSelectHero
+            elif(current_state.current_phase == GamePhases.DireSelectHero):
+                dire_heroes = list(current_state.dire_heroes)
+                dire_heroes.append(action.hero)
+                new_phase = GamePhases.RadiantSelectHero
+            else:
+                assert (False)
+
+            banned_heroes.append(action.hero)
+
             if type(action) is SelectHero:
-                picked_heroes.append(action.hero)
                 banned_heroes.append(action.hero)
 
-            return GameState(self, GamePhases.SelectHero, picked_heroes, banned_heroes)
+            return GameState(self, new_phase, radiant_heroes, dire_heroes, banned_heroes)
 
     def first_state(self):
-        return GameState(self, GamePhases.SelectHero)
+        return GameState(self, GamePhases.RadiantSelectHero)
 
 
 
@@ -112,12 +126,9 @@ class GameModel(object):
         return state.get_next_state(action)
 
     def get_actions_for_state(self, state: GameState):
-        if state.current_phase == GamePhases.SelectHero:
-            if state.is_finished():
-                return
-            return list(map(SelectHero, Hero))
-        pass
-
+        if state.is_finished():
+            return
+        return list(map(SelectHero, Hero))
 
 
 class GameResultEstimator(object):
@@ -129,7 +140,12 @@ class GameResultEstimator(object):
     def build_data(state: GameState, actions):
 
         initial_state_data = np.zeros(shape=[HeroEncodeMap.Total * 5 + ActionMap.Total], dtype=np.float32)
-        for i, hero in enumerate(state.picked_heroes):
+        for i, hero in enumerate(state.radiant_heroes):
+            begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * i
+            end_i = begin_i + HeroEncodeMap.Total
+            hero.encode(initial_state_data[begin_i:end_i])
+
+        for i, hero in enumerate(state.dire_heroes):
             begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * i
             end_i = begin_i + HeroEncodeMap.Total
             hero.encode(initial_state_data[begin_i:end_i])
