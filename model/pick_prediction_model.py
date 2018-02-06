@@ -9,7 +9,7 @@ L2_BETA = 0.001
 
 class PickPredictionModel(object):
 
-    def __init__(self, inputs, outputs):
+    def __init__(self, picks_inputs, picks_outputs, policy_inputs=1, policy_outputs=1):
         self.histograms = []
 
         self.metrics_array = {}
@@ -17,12 +17,12 @@ class PickPredictionModel(object):
 
         with tf.variable_scope('PickPredictionModel'):
             with tf.variable_scope('Inputs'):
-                self.inputs = tf.placeholder(dtype=tf.float32, shape=[None, inputs])
-                self.target_results = tf.placeholder(dtype=tf.float32, shape=[None, outputs])
-                self.dropout = tf.placeholder(dtype=tf.float32)
+                self.picks_inputs = tf.placeholder(dtype=tf.float32, shape=[None, picks_inputs])
+                self.picks_target_results = tf.placeholder(dtype=tf.float32, shape=[None, picks_outputs])
+                self.picks_dropout = tf.placeholder(dtype=tf.float32)
 
             with tf.variable_scope('Base'):
-                flat_input = tf.contrib.layers.flatten(self.inputs)
+                flat_input = tf.contrib.layers.flatten(self.picks_inputs)
 
                 hid_1 = tf.contrib.layers.fully_connected(flat_input, 1024, activation_fn=tf.nn.relu)
                 hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn1')
@@ -35,25 +35,25 @@ class PickPredictionModel(object):
                 hid_exit = hid_2
 
             with tf.variable_scope('Head'):
-                self.logits = tf.contrib.layers.fully_connected(hid_exit, outputs)
-                self.predictions = tf.nn.softmax(self.logits)
+                self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, picks_outputs)
+                self.picks_predictions = tf.nn.softmax(self.picks_logits)
 
             with tf.variable_scope('Optimization'):
                 with tf.variable_scope('Loss'):
-                    self.loss = tf.losses.softmax_cross_entropy(self.target_results, self.logits)
+                    self.picks_loss = tf.losses.softmax_cross_entropy(self.picks_target_results, self.picks_logits)
 
                 with tf.name_scope('accuracy'):
-                    self.accuracy = tf.reduce_mean(
-                        tf.cast(tf.equal(tf.argmax(self.target_results, 1), tf.argmax(self.logits, 1)), 'float32'))
+                    self.picks_accuracy = tf.reduce_mean(
+                        tf.cast(tf.equal(tf.argmax(self.picks_target_results, 1), tf.argmax(self.picks_logits, 1)), 'float32'))
 
                 with tf.variable_scope('Optimizer'):
                     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
-                    self.optimize_op = optimizer.minimize(self.loss)
+                    self.picks_optimize_op = optimizer.minimize(self.picks_loss)
 
             with tf.variable_scope('Stats'):
-                tf.summary.scalar('accuracy', self.accuracy)
-                tf.summary.scalar('cross_entropy_loss', self.loss)
-                auc, auc_op = tf.metrics.auc(predictions=self.predictions, labels=self.target_results)
+                tf.summary.scalar('accuracy', self.picks_accuracy)
+                tf.summary.scalar('cross_entropy_loss', self.picks_loss)
+                auc, auc_op = tf.metrics.auc(predictions=self.picks_predictions, labels=self.picks_target_results)
                 tf.summary.scalar('auc', auc)
 
                 self.merged_summaries = tf.summary.merge_all()
@@ -64,16 +64,52 @@ class PickPredictionModel(object):
             # self.histograms += [tf.summary.histogram('logits', self.logits), tf.summary.histogram('predictions', self.predictions)]
             self.histograms = tf.summary.merge(self.histograms)
 
-            with tf.variable_scope('Saver'):
-                self.saver = tf.train.Saver()
+        with tf.variable_scope('GraphPredictionModel'):
+            with tf.variable_scope('Inputs'):
+                self.policy_inputs = tf.placeholder(dtype=tf.float32, shape=[None, policy_inputs])
+                self.policy_target_results = tf.placeholder(dtype=tf.float32, shape=[None, policy_outputs])
+                self.policy_dropout = tf.placeholder(dtype=tf.float32)
 
-    def train(self, sess: tf.Session, dropout, inputs, results):
+            with tf.variable_scope('Base'):
+                flat_input = tf.contrib.layers.flatten(self.policy_inputs)
+
+                hid_1 = tf.contrib.layers.fully_connected(flat_input, 1024, activation_fn=tf.nn.relu)
+                hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn1')
+                # hid_1 = tf.nn.dropout(hid_1, keep_prob=self.dropout)
+
+                hid_2 = tf.contrib.layers.fully_connected(hid_1, 1024, activation_fn=tf.nn.relu)
+                hid_2 = tf.contrib.layers.batch_norm(hid_2, center=True, scale=True, is_training=True, scope='bn2')
+                # hid_2 = tf.nn.dropout(hid_2, keep_prob=self.dropout)
+
+                hid_exit = hid_2
+
+            with tf.variable_scope('Head'):
+                self.policy_logits = tf.contrib.layers.fully_connected(hid_exit, policy_outputs)
+                self.policy_predictions = tf.nn.softmax(self.policy_logits)
+                # self.logits = tf.Print(self.logits, [self.logits], message="logits: ")
+
+            with tf.variable_scope('Optimization'):
+                with tf.variable_scope('Loss'):
+                    self.policy_loss = tf.losses.softmax_cross_entropy(self.policy_target_results, self.policy_logits)
+
+                with tf.name_scope('accuracy'):
+                    self.policy_accuracy = tf.reduce_mean(
+                            tf.cast(tf.equal(tf.argmax(self.policy_target_results, 1), tf.argmax(self.policy_logits, 1)), 'float32'))
+
+                with tf.variable_scope('Optimizer'):
+                    optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
+                    self.policy_optimize_op = optimizer.minimize(self.policy_loss)
+
+        with tf.variable_scope('Saver'):
+            self.saver = tf.train.Saver()
+
+    def train_picks(self, sess: tf.Session, dropout, inputs, results):
         loss, accuracy, _, merged_summaries = sess.run(
-            [self.loss, self.accuracy, self.optimize_op, self.merged_summaries],
+            [self.picks_loss, self.picks_accuracy, self.picks_optimize_op, self.merged_summaries],
             feed_dict={
-                self.dropout: dropout,
-                self.inputs: inputs,
-                self.target_results: results
+                self.picks_dropout: dropout,
+                self.picks_inputs: inputs,
+                self.picks_target_results: results
             })
 
         return loss, accuracy, merged_summaries
@@ -81,8 +117,8 @@ class PickPredictionModel(object):
     def get_histograms(self, sess: tf.Session):
         return sess.run(self.histograms)
 
-    def predict(self, sess: tf.Session, inputs):
-        return sess.run([self.predictions], feed_dict={self.inputs: inputs})
+    def predict(self, sess: tf.Session, picks_inputs):
+        return sess.run([self.picks_predictions], feed_dict={self.picks_inputs: inputs})
 
     def evaluate(self, sess: tf.Session, inputs, target_results):
         metric_values_tensors = []
@@ -94,9 +130,9 @@ class PickPredictionModel(object):
         results = sess.run(
             metric_values_tensors + metric_update_ops,
             feed_dict={
-                self.dropout: 1.0,
-                self.inputs: inputs,
-                self.target_results: target_results
+                self.picks_dropout: 1.0,
+                self.picks_inputs: inputs,
+                self.picks_target_results: target_results
             })
 
         metric_values = results[:len(metric_values_tensors)]

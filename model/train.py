@@ -67,7 +67,7 @@ def main_old():
     picks_raw, results_raw = to_training_data(read())
     x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
-    model = PickPredictionModel(inputs=MatchEncodeMap.Total, outputs=ResultsEncodeMap.Total)
+    model = PickPredictionModel(picks_inputs=MatchEncodeMap.Total, picks_outputs=ResultsEncodeMap.Total)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -90,7 +90,7 @@ def main_old():
             indices = np.random.randint(0, len(x_train), BATCH_SIZE)
             x_epoch = x_train[indices]
             y_epoch = y_train[indices]
-            loss, acc, summ = model.train(sess, 0.5, x_epoch, y_epoch)
+            loss, acc, summ = model.train_picks(sess, 0.5, x_epoch, y_epoch)
             # train_writer.add_summary(summ, epoch)
             # print(pred_log)
             # print(pred)

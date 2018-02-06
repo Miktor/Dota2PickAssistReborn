@@ -3,7 +3,6 @@ import numpy as np
 from enum import IntEnum
 from dota.heroes import Hero, Lane, NUM_HEROES, Role
 from dota.input_data import HeroEncodeMap, MatchEncodeMap
-from model.picker_model import GraphPredictionModel
 
 
 
