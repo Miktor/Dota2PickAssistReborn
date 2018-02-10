@@ -116,7 +116,7 @@ class MCTSNode(object):
         # Probabilistic policy: select edge with weights of N^(1/tau)
         exp_n = np.power(self.edge_n, 1.0 / tau)
         probabilities = exp_n / exp_n.sum()
-        idx = np.random.choice(len(self.actions), p=probabilities)
+        idx = np.random.choice(len(self.actions), p=probabilities, replace=False)
         return self.actions[idx], self.children[idx], probabilities
 
     def run(self, game_model, estimator, simulations: int):

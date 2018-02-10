@@ -9,8 +9,6 @@ from sklearn.model_selection import train_test_split
 from model.pick_prediction_model import PickPredictionModel
 from dota.heroes import Hero
 from dota.input_data import encode_from_json, MatchEncodeMap, ResultsEncodeMap
-import model.keras_model as k
-from keras import backend as back
 
 PACKED_FILE = 'data/packed.json'
 
@@ -63,7 +61,7 @@ def test_prediction(sess, model, picks_test, results_test):
     print(model.calc_metrics(sess))
 
 
-def main_old():
+def main():
     picks_raw, results_raw = to_training_data(read())
     x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
@@ -111,27 +109,6 @@ def main_old():
 
         print(model.evaluate(sess, x_test, y_test))
         # test_prediction(sess, model, x_test, y_test)
-
-
-import tensorflow as tf
-
-
-
-def main():
-    picks_raw, results_raw = to_training_data(read())
-    x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
-
-    sess = tf.Session()
-    back.set_session(sess)
-
-    model = k.KerasModel(input_shape=(MatchEncodeMap.Total,), outputs=ResultsEncodeMap.Total)
-
-    timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H-%M')
-    train_writer = tf.summary.FileWriter(os.path.join('C:\\Development\\logs', timestamp), graph=tf.get_default_graph())
-
-    model.train(x_train, y_train, batch_size=BATCH_SIZE, epochs=100)
-    score = model.evaluate(x_test, y_test)
-    print('Score: {0}'.format(score))
 
 
 if __name__ == '__main__':

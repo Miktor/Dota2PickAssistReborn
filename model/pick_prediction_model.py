@@ -8,8 +8,11 @@ L2_BETA = 0.001
 
 
 class PickPredictionModel(object):
-
-    def __init__(self, picks_inputs, picks_outputs, policy_inputs=1, policy_outputs=1):
+    def __init__(self,
+                 picks_inputs,
+                 picks_outputs,
+                 policy_state_shape=1,
+                 policy_num_actions=1):
         self.histograms = []
 
         self.metrics_array = {}
@@ -66,12 +69,12 @@ class PickPredictionModel(object):
 
         with tf.variable_scope('GraphPredictionModel'):
             with tf.variable_scope('Inputs'):
-                self.policy_inputs = tf.placeholder(dtype=tf.float32, shape=[None, policy_inputs])
-                self.policy_target_results = tf.placeholder(dtype=tf.float32, shape=[None, policy_outputs])
+                self.policy_states = tf.placeholder(dtype=tf.float32, shape=[None, policy_state_shape])
+                self.policy_target_results = tf.placeholder(dtype=tf.float32, shape=[None, policy_num_actions])
                 self.policy_dropout = tf.placeholder(dtype=tf.float32)
 
             with tf.variable_scope('Base'):
-                flat_input = tf.contrib.layers.flatten(self.policy_inputs)
+                flat_input = tf.contrib.layers.flatten(self.policy_states)
 
                 hid_1 = tf.contrib.layers.fully_connected(flat_input, 1024, activation_fn=tf.nn.relu)
                 hid_1 = tf.contrib.layers.batch_norm(hid_1, center=True, scale=True, is_training=True, scope='bn1')
@@ -83,10 +86,15 @@ class PickPredictionModel(object):
 
                 hid_exit = hid_2
 
-            with tf.variable_scope('Head'):
-                self.policy_logits = tf.contrib.layers.fully_connected(hid_exit, policy_outputs)
+            with tf.variable_scope('PolicyHead'):
+                x = tf.contrib.layers.fully_connected(hid_exit, 256, activation_fn=tf.nn.relu)
+                self.policy_logits = tf.contrib.layers.fully_connected(x, policy_num_actions)
                 self.policy_predictions = tf.nn.softmax(self.policy_logits)
                 # self.logits = tf.Print(self.logits, [self.logits], message="logits: ")
+
+            with tf.variable_scope('ValueHead'):
+                x = tf.contrib.layers.fully_connected(hid_exit, 256, activation_fn=tf.nn.relu)
+                self.value = tf.contrib.layers.fully_connected(x, 1, activation_fn=tf.nn.tanh, biases_initializer=None)
 
             with tf.variable_scope('Optimization'):
                 with tf.variable_scope('Loss'):
@@ -120,8 +128,8 @@ class PickPredictionModel(object):
     def predict_win(self, sess: tf.Session, inputs):
         return sess.run([self.picks_predictions], feed_dict={self.picks_inputs: inputs})
 
-    def predict_picks(self, sess: tf.Session, inputs):
-        return sess.run([self.policy_predictions], feed_dict={self.policy_inputs: inputs})
+    def predict_policy_value(self, sess: tf.Session, inputs):
+        return sess.run([self.policy_predictions, self.value], feed_dict={self.policy_states: inputs})
 
     def evaluate(self, sess: tf.Session, inputs, target_results):
         metric_values_tensors = []

@@ -22,17 +22,15 @@ class MatchResultPredictor(object):
 
         return self.model.predict_win(self.sess, predict_data)
 
-    def predict(self, state, actions):
-        return self.model.predict_picks(self.sess, actions)
+    def predict(self, state: GameState, actions) -> (np.ndarray, float):
+        return self.model.predict_policy_value(self.sess, actions)
 
 
 def action_probabilities_to_policy(probabilities: np.ndarray, legal_actions) -> np.ndarray:
     return [0, 0, 0, .2, 0.5]
 
 
-
 class Simulation(object):
-
     def __init__(self, memory_size=10000, mcst_per_turn_simulations=100):
         self.memory = GenericMemory(memory_size, [
             ('state', np.float32, ()),
@@ -91,8 +89,6 @@ class Simulation(object):
                 node = new_node
 
 
-
 if __name__ == '__main__':
-
     simulation = Simulation()
     simulation.run()

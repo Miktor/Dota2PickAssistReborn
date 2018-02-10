@@ -63,9 +63,7 @@ class GameMode(object):
         self.current_phase = phase
 
 
-
 class GameState(object):
-
     def __init__(self, game_mode: GameMode, phase: GamePhases, radiant_heroes=[], dire_heroes=[], banned_heroes=[]):
         self.current_phase = phase  # type: GamePhases
         self.radiant_heroes = radiant_heroes
@@ -81,9 +79,7 @@ class GameState(object):
         return len(self.radiant_heroes) == len(self.dire_heroes) == 5
 
 
-
 class AllPickMode(GameMode):
-
     def __init__(self):
         super(AllPickMode, self).__init__(GamePhases.RadiantSelectHero)
 
@@ -97,11 +93,11 @@ class AllPickMode(GameMode):
 
             # create new instance of state values
             new_phase = GamePhases.RadiantSelectHero
-            if(current_state.current_phase == GamePhases.RadiantSelectHero):
+            if current_state.current_phase == GamePhases.RadiantSelectHero:
                 radiant_heroes = list(current_state.radiant_heroes)
                 radiant_heroes.append(action.hero)
                 new_phase = GamePhases.DireSelectHero
-            elif(current_state.current_phase == GamePhases.DireSelectHero):
+            elif current_state.current_phase == GamePhases.DireSelectHero:
                 dire_heroes = list(current_state.dire_heroes)
                 dire_heroes.append(action.hero)
                 new_phase = GamePhases.RadiantSelectHero
@@ -119,7 +115,6 @@ class AllPickMode(GameMode):
         return GameState(self, GamePhases.RadiantSelectHero)
 
 
-
 class GameModel(object):
     def get_state_for_action(self, state: GameState, action: Action):
         return state.get_next_state(action)
@@ -131,7 +126,6 @@ class GameModel(object):
 
 
 class GameResultEstimator(object):
-
     def __init__(self):
         self.model = GraphPredictionModel(1, 1)
 
@@ -165,6 +159,7 @@ class GameResultEstimator(object):
         data_to_predict = GameResultEstimator.build_data(state, actions)
 
         return np.full(data_to_predict.shape[0], 0.5), 0.5
+
 
 if __name__ == '__main__':
     pass
