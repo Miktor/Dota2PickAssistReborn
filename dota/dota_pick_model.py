@@ -122,7 +122,8 @@ class GameModel(object):
     def get_actions_for_state(self, state: GameState):
         if state.is_finished():
             return
-        return list(map(SelectHero, Hero))
+
+        return list(map(SelectHero, set(Hero) - set(state.radiant_heroes + state.dire_heroes + state.banned_heroes)))
 
 
 class GameResultEstimator(object):
