@@ -128,7 +128,7 @@ class GameModel(object):
         if state.is_finished():
             return
 
-        return list(map(SelectHero, set(Hero) - set(state.radiant_heroes + state.dire_heroes + state.banned_heroes)))
+        return list(map(SelectHero, set(Hero) - set([v.hero for v in state.radiant_heroes] + [v.hero for v in state.dire_heroes] + state.banned_heroes)))
 
 
 if __name__ == '__main__':
