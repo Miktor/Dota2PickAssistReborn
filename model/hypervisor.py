@@ -10,7 +10,10 @@ import tensorflow as tf
 class MatchResultPredictor(object):
     def __init__(self):
         self.sess = None
-        self.model = PickPredictionModel(picks_inputs=MatchEncodeMap.Total, picks_outputs=ResultsEncodeMap.Total)
+        self.model = PickPredictionModel(picks_inputs=MatchEncodeMap.Total,
+                                         picks_outputs=ResultsEncodeMap.Total,
+                                         policy_state_shape=StateEncodeMap.Total,
+                                         policy_num_actions=115)
 
     def predict_match_result(self, radiant_pick, dire_pick):
         predict_data = np.zeros(shape=[1, MatchEncodeMap.Total], dtype=np.float32)
@@ -24,8 +27,8 @@ class MatchResultPredictor(object):
         return self.model.predict_win(self.sess, predict_data)
 
     def predict(self, state: GameState, actions: List[SelectHero]) -> (np.ndarray, float):
-        action_indices = [get_hero_index(action.hero) for action in actions]
-        policy, value = self.model.predict_policy_value(self.sess, [state.to_data()])
+        action_indices = [get_hero_index(action.hero.hero) for action in actions]
+        policy, value = self.model.predict_policy_value(self.sess, [state.encode()])
         policy = policy[0]
         value = value[0]
 
@@ -62,6 +65,7 @@ class Simulation(object):
         config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
         with tf.Session(config=config) as sess:
+            sess.run(tf.global_variables_initializer())
             match_result_predictor.sess = sess
             match_result_predictor.model.load_if_exists(sess)
 

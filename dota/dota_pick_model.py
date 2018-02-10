@@ -53,7 +53,7 @@ class GameMode(object):
     def __init__(self, phase: GamePhases):
         self.current_phase = phase
 
-    def next(self, state: GameState, action: Action):
+    def next(self, state: 'GameState', action: Action):
         raise NotImplementedError
 
 
@@ -72,18 +72,16 @@ class GameState(object):
     def is_finished(self):
         return len(self.radiant_heroes) == len(self.dire_heroes) == 5
 
-    def to_data(self, predict_data):
-
+    def encode(self):
+        predict_data = np.zeros(StateEncodeMap.Total, dtype=np.float32)
         predict_data[StateEncodeMap.Phase] = self.current_phase
-
-        for i, hero in enumerate(self.radiant_pick):
+        for i, hero in enumerate(self.radiant_heroes):
             encode_hero(predict_data[StateEncodeMap.RadiantPick:], 0, i, hero.hero, RADIANT, 0, 0, False)
-        for i, hero in enumerate(self.dire_pick):
+        for i, hero in enumerate(self.dire_heroes):
             encode_hero(predict_data[StateEncodeMap.DirePick:], 0, i + 5, hero.hero, DIRE, 0, 0, False)
         for i, hero in enumerate(self.banned_heroes):
             encode_hero(predict_data[StateEncodeMap.BannedHeroes:], 0, 0, hero.hero, 1., 0, 0, False)
-
-        pass
+        return predict_data
 
 
 class AllPickMode(GameMode):
