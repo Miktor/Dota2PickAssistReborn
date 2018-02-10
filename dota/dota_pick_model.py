@@ -126,41 +126,5 @@ class GameModel(object):
         return list(map(SelectHero, set(Hero) - set(state.radiant_heroes + state.dire_heroes + state.banned_heroes)))
 
 
-class GameResultEstimator(object):
-    def __init__(self):
-        self.model = GraphPredictionModel(1, 1)
-
-    @staticmethod
-    def build_data(state: GameState, actions):
-
-        initial_state_data = np.zeros(shape=[HeroEncodeMap.Total * 5 + ActionMap.Total], dtype=np.float32)
-        for i, hero in enumerate(state.radiant_heroes):
-            begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * i
-            end_i = begin_i + HeroEncodeMap.Total
-            hero.encode(initial_state_data[begin_i:end_i])
-
-        for i, hero in enumerate(state.dire_heroes):
-            begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * i
-            end_i = begin_i + HeroEncodeMap.Total
-            hero.encode(initial_state_data[begin_i:end_i])
-
-        if actions is None:
-            return np.tile(initial_state_data, 1)
-
-        output_data = np.tile(initial_state_data, [len(actions), 1])
-
-        for i, action in enumerate(actions):
-            if type(action) is SelectHero:
-                action_data = output_data[i, HeroEncodeMap.Total * 5:]
-                action.encode(action_data)
-
-        return output_data
-
-    def predict(self, state: GameState, actions):
-        data_to_predict = GameResultEstimator.build_data(state, actions)
-
-        return np.full(data_to_predict.shape[0], 0.5), 0.5
-
-
 if __name__ == '__main__':
     pass
