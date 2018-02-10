@@ -8,7 +8,8 @@ from sklearn.model_selection import train_test_split
 
 from model.pick_prediction_model import PickPredictionModel
 from dota.heroes import Hero
-from dota.input_data import encode_from_json, MatchEncodeMap, ResultsEncodeMap
+from dota.input_data import encode_from_json, MatchEncodeMap, ResultsEncodeMap, StateEncodeMap
+
 
 PACKED_FILE = 'data/packed.json'
 
@@ -65,7 +66,10 @@ def main():
     picks_raw, results_raw = to_training_data(read())
     x_train, x_test, y_train, y_test = train_test_split(picks_raw, results_raw, train_size=0.8, random_state=13)
 
-    model = PickPredictionModel(picks_inputs=MatchEncodeMap.Total, picks_outputs=ResultsEncodeMap.Total)
+    model = PickPredictionModel(picks_inputs=MatchEncodeMap.Total,
+                                picks_outputs=ResultsEncodeMap.Total,
+                                policy_state_shape=StateEncodeMap.Total,
+                                policy_num_actions=115)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -112,4 +116,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main_old()
+    main()
