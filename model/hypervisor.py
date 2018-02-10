@@ -16,9 +16,9 @@ class MatchResultPredictor(object):
         encode_match(predict_data[0, :], MATCH_DURATION_DEFAULT)
 
         for i, hero in enumerate(radiant_pick):
-            encode_hero(predict_data[0, :], i, hero.hero, RADIANT, hero.lane, hero.role, False)
+            encode_hero(predict_data[0, :], MatchEncodeMap.HeroStart, i, hero.hero, RADIANT, hero.lane, hero.role, False)
         for i, hero in enumerate(dire_pick):
-            encode_hero(predict_data[0, :], i + 5, hero.hero, DIRE, hero.lane, hero.role, False)
+            encode_hero(predict_data[0, :], MatchEncodeMap.HeroStart, i + 5, hero.hero, DIRE, hero.lane, hero.role, False)
 
         return self.model.predict_win(self.sess, predict_data)
 
@@ -26,7 +26,7 @@ class MatchResultPredictor(object):
         return self.model.predict_policy_value(self.sess, actions)
 
 
-def action_probabilities_to_policy(probabilities: np.ndarray, legal_actions) -> np.ndarray:
+def action_probabilities_to_policy(probabilities: np.ndarray, legal_actions) -> List[Union[int, float]]:
     return [0, 0, 0, .2, 0.5]
 
 

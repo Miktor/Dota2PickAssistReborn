@@ -2,7 +2,7 @@ import numpy as np
 
 from enum import IntEnum
 from dota.heroes import Hero, Lane, NUM_HEROES, Role
-from dota.input_data import HeroEncodeMap, MatchEncodeMap
+from dota.input_data import HeroEncodeMap, MatchEncodeMap, encode_hero, RADIANT, DIRE, StateEncodeMap
 
 
 
@@ -11,8 +11,6 @@ class GamePhases(IntEnum):
     DireSelectHero = 1
     Ban = 2
     Play = 3
-
-
 
 class ActionMap(IntEnum):
     HeroId = 0
@@ -77,6 +75,19 @@ class GameState(object):
 
     def is_finished(self):
         return len(self.radiant_heroes) == len(self.dire_heroes) == 5
+
+    def to_data(self, predict_data):
+
+        predict_data[StateEncodeMap.Phase] = self.current_phase
+
+        for i, hero in enumerate(self.radiant_pick):
+            encode_hero(predict_data[StateEncodeMap.RadiantPick:], 0, i, hero.hero, RADIANT, 0, 0, False)
+        for i, hero in enumerate(self.dire_pick):
+            encode_hero(predict_data[StateEncodeMap.DirePick:], 0, i + 5, hero.hero, DIRE, 0, 0, False)
+        for i, hero in enumerate(self.banned_heroes):
+            encode_hero(predict_data[StateEncodeMap.BannedHeroes:], 0, 0, hero.hero, 1., 0, 0, False)
+
+        pass
 
 
 class AllPickMode(GameMode):

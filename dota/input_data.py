@@ -25,14 +25,21 @@ class ResultsEncodeMap(enum.IntEnum):
     Dire = 1
     Total = 2
 
+class StateEncodeMap(enum.IntEnum):
+    Phase = 0
+    RadiantPick = 1
+    DirePick = RadiantPick + 5 * HeroEncodeMap.Total
+    BannedHeroes = DirePick + 5 * HeroEncodeMap.Total
+    Total = BannedHeroes + HeroEncodeMap.Total
+
 
 PARAMETERS_PER_MATCH = 1
 PARAMETERS_PER_HERO = NUM_HEROES
 
 
 
-def encode_hero(output_data, hero_index, hero_id: Hero, side, lane, lane_role, is_roaming):
-    begin_i = MatchEncodeMap.HeroStart + HeroEncodeMap.Total * hero_index
+def encode_hero(output_data, begin,  hero_index, hero_id: Hero, side, lane, lane_role, is_roaming):
+    begin_i = begin + HeroEncodeMap.Total * hero_index
     end_i = begin_i + HeroEncodeMap.Total
 
     hero_data = output_data[begin_i:end_i]
@@ -63,7 +70,7 @@ def encode_hero_from_json(output_data, hero_index, hero_data):
     lane_role = hero_data['lane_role']
     is_roaming = bool(hero_data['is_roaming'])
 
-    encode_hero(output_data, hero_index, hero_id, side, lane, lane_role, is_roaming)
+    encode_hero(output_data, MatchEncodeMap.HeroStart, hero_index, hero_id, side, lane, lane_role, is_roaming)
 
 
 def encode_from_json(json_data, output_data, output_results):
