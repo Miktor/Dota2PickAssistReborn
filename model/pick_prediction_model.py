@@ -128,8 +128,8 @@ class PickPredictionModel(object):
     def predict_win(self, sess: tf.Session, inputs):
         return sess.run([self.picks_predictions], feed_dict={self.picks_inputs: inputs})
 
-    def predict_policy_value(self, sess: tf.Session, inputs):
-        return sess.run([self.policy_predictions, self.value], feed_dict={self.policy_states: inputs})
+    def predict_policy_value(self, sess: tf.Session, states):
+        return sess.run([self.policy_predictions, self.value], feed_dict={self.policy_states: states})
 
     def evaluate(self, sess: tf.Session, inputs, target_results):
         metric_values_tensors = []

@@ -5,6 +5,9 @@ from dota.heroes import Hero, Lane, NUM_HEROES, Role
 from dota.input_data import HeroEncodeMap, MatchEncodeMap, encode_hero, RADIANT, DIRE, StateEncodeMap
 
 
+def get_hero_index(hero: Hero):
+    return list(Hero).index(hero)
+
 
 class GamePhases(IntEnum):
     RadiantSelectHero = 0
@@ -19,20 +22,14 @@ class ActionMap(IntEnum):
     Total = HeroRole + Role.Total
 
 
-
 class PickedHero:
-
     def __init__(self, hero: Hero, lane=Lane.NoLane, role=Role.NoRole):
         self.hero = hero  # Hero
         self.lane = lane  # Lane
         self.role = role  # Role
 
-    @staticmethod
-    def get_hero_index(hero: Hero):
-        return list(Hero).index(hero)
-
     def encode(self, output_data):
-        output_data[PickedHero.get_hero_index(self.hero)] = 1
+        output_data[get_hero_index(self.hero)] = 1
 
         if self.lane:
             output_data[HeroEncodeMap.HeroLane + self.lane - 1] = 1
@@ -40,14 +37,11 @@ class PickedHero:
             output_data[HeroEncodeMap.HeroRole + self.lane_role - 1] = 1
 
 
-
 class Action(object):
     pass
 
 
-
 class SelectHero(Action):
-
     def __init__(self, hero: Hero):
         self.hero = PickedHero(hero)
 
@@ -55,10 +49,12 @@ class SelectHero(Action):
         self.hero.encode(out_data)
 
 
-
 class GameMode(object):
     def __init__(self, phase: GamePhases):
         self.current_phase = phase
+
+    def next(self, state: GameState, action: Action):
+        raise NotImplementedError
 
 
 class GameState(object):
