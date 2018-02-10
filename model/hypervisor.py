@@ -1,3 +1,4 @@
+from typing import List
 from model.mcts import MCTSNode
 from utils.utils import GenericMemory
 from dota.dota_pick_model import *
@@ -22,12 +23,23 @@ class MatchResultPredictor(object):
 
         return self.model.predict_win(self.sess, predict_data)
 
-    def predict(self, state: GameState, actions) -> (np.ndarray, float):
-        return self.model.predict_policy_value(self.sess, actions)
+    def predict(self, state: GameState, actions: List[SelectHero]) -> (np.ndarray, float):
+        action_indices = [get_hero_index(action.hero) for action in actions]
+        policy, value = self.model.predict_policy_value(self.sess, [state.to_data()])
+        policy = policy[0]
+        value = value[0]
+
+        policy_for_actions = policy[action_indices]
+        policy_for_actions = policy_for_actions / np.sum(policy_for_actions)  # Normalize across legal actions
+        return policy_for_actions, value
 
 
-def action_probabilities_to_policy(probabilities: np.ndarray, legal_actions) -> np.ndarray:
-    return [0, 0, 0, .2, 0.5]
+def action_probabilities_to_policy(probabilities: np.ndarray, legal_actions: List[SelectHero]) -> np.ndarray:
+    heroes = list(Hero)
+    action_indices = [get_hero_index(action.hero) for action in legal_actions]
+    policy = np.zeros(len(heroes), dtype=np.float32)
+    policy[action_indices] = probabilities
+    return policy
 
 
 class Simulation(object):
