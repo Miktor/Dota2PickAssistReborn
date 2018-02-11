@@ -40,6 +40,3 @@ class GenericMemory(object):
 
     def __len__(self):
         return self.filled
-
-if __name__ == '__main__':
-    pass

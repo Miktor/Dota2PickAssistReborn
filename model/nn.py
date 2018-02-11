@@ -1,18 +1,16 @@
 import tensorflow as tf
 import os
-import numpy as np
 
 MODEL_PATH = './trained-model/pick_prediction'
 LEARNING_RATE = 5 * 1e-5
 L2_BETA = 0.001
 
 
-class PickPredictionModel(object):
+class NNModel(object):
     def __init__(self,
-                 picks_inputs,
-                 picks_outputs,
-                 policy_state_shape=1,
-                 policy_num_actions=1):
+                 pick_shape: tuple,
+                 pick_game_shape: tuple,
+                 pick_game_num_actions: int):
         self.histograms = []
 
         self.metrics_array = {}
@@ -20,8 +18,8 @@ class PickPredictionModel(object):
 
         with tf.variable_scope('PickPredictionModel'):
             with tf.variable_scope('Inputs'):
-                self.picks_inputs = tf.placeholder(dtype=tf.float32, shape=[None, picks_inputs])
-                self.picks_target_results = tf.placeholder(dtype=tf.float32, shape=[None, picks_outputs])
+                self.picks_inputs = tf.placeholder(dtype=tf.float32, shape=(None, ) + pick_shape)
+                self.picks_target_results = tf.placeholder(dtype=tf.float32, shape=(None, 1))
                 self.picks_dropout = tf.placeholder(dtype=tf.float32)
 
             with tf.variable_scope('Base'):
@@ -38,7 +36,7 @@ class PickPredictionModel(object):
                 hid_exit = hid_2
 
             with tf.variable_scope('Head'):
-                self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, picks_outputs)
+                self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, 1)
                 self.picks_predictions = tf.nn.softmax(self.picks_logits)
 
             with tf.variable_scope('Optimization'):
@@ -69,8 +67,8 @@ class PickPredictionModel(object):
 
         with tf.variable_scope('GraphPredictionModel'):
             with tf.variable_scope('Inputs'):
-                self.policy_states = tf.placeholder(dtype=tf.float32, shape=[None, policy_state_shape])
-                self.policy_target_results = tf.placeholder(dtype=tf.float32, shape=[None, policy_num_actions])
+                self.policy_states = tf.placeholder(dtype=tf.float32, shape=(None, ) + pick_game_shape)
+                self.policy_target_results = tf.placeholder(dtype=tf.float32, shape=(None, pick_game_num_actions))
                 self.policy_dropout = tf.placeholder(dtype=tf.float32)
 
             with tf.variable_scope('Base'):
@@ -88,7 +86,7 @@ class PickPredictionModel(object):
 
             with tf.variable_scope('PolicyHead'):
                 x = tf.contrib.layers.fully_connected(hid_exit, 256, activation_fn=tf.nn.relu)
-                self.policy_logits = tf.contrib.layers.fully_connected(x, policy_num_actions)
+                self.policy_logits = tf.contrib.layers.fully_connected(x, pick_game_num_actions)
                 self.policy_predictions = tf.nn.softmax(self.policy_logits)
                 # self.logits = tf.Print(self.logits, [self.logits], message="logits: ")
 
@@ -169,7 +167,3 @@ class PickPredictionModel(object):
                 self.load(sess, path)
         except Exception as e:
             print('Failed to load! {}'.format(e))
-
-
-if __name__ == '__main__':
-    pass

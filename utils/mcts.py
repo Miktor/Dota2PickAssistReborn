@@ -10,6 +10,19 @@ MCTS_DIRICHLET_ALPHA = 0.03
 MCTS_C_PUCT = 1.0
 
 
+class MCTSEnvModel(object):
+    def get_state_for_action(self, state, action):
+        raise NotImplementedError
+
+    def get_actions_for_state(self, state):
+        raise NotImplementedError
+
+
+class MCTSEstimator(object):
+    def predict(self, state, actions) -> Tuple[np.ndarray, float]:
+        raise NotImplementedError
+
+
 class MCTSNode(object):
     def __init__(self, state):
         self.state = state  # Node payload
@@ -25,7 +38,9 @@ class MCTSNode(object):
         self.edge_p = None  # Edge probability
         self.edge_n = None  # Number of edge visitations
 
-    def select(self, game_model, path_nodes: List['MCTSNode'],
+    def select(self,
+               env_model: MCTSEnvModel,
+               path_nodes: List['MCTSNode'],
                path_edge_indices: List[int]) -> Tuple['MCTSNode', List['MCTSNode'], List[int]]:
         # If current node is not expanded or current node is terminal (no actions)
         # then select finishes - we found the leaf node
@@ -50,7 +65,7 @@ class MCTSNode(object):
         # This "lazy loading" of the child node for argmax(Q + U)
         # and prevents evaluating each successor
         if self.children[selected] is None:
-            child_state = game_model.get_state_for_action(self.state, self.actions[selected])
+            child_state = env_model.get_state_for_action(self.state, self.actions[selected])
             child_node = MCTSNode(child_state)
             self.children[selected] = child_node
 
@@ -58,18 +73,18 @@ class MCTSNode(object):
         # by calling select of the child node
         # Return the full path (both nodes and edges) of select
         return self.children[selected].select(
-            game_model, path_nodes=path_nodes + [
+            env_model, path_nodes=path_nodes + [
                 self,
             ], path_edge_indices=path_edge_indices + [
                 selected,
             ])
 
-    def expand(self, game_model, estimator):
+    def expand(self, env_model: MCTSEnvModel, estimator: MCTSEstimator):
         # Get actions that we can take from the current state
         # Note: next states will be evaluated on-demand in select
         # to prevent evaluating nodes with low probabilities
         # (which will no likely to be used)
-        self.actions = game_model.get_actions_for_state(self.state)
+        self.actions = env_model.get_actions_for_state(self.state)
 
         # State is terminal (no further actions), node can't have any edges so
         # just predict node's value and return
@@ -86,7 +101,7 @@ class MCTSNode(object):
         self.edge_q = np.zeros(action_num, dtype=np.float32)
         self.edge_w = np.zeros(action_num, dtype=np.float32)
         self.edge_n = np.zeros(action_num, dtype=np.uint8)
-        self.children = np.full(action_num, None, dtype=np.object)
+        self.children = np.empty(action_num, dtype=np.object)
 
         # Mark this node as expanded
         self.is_expanded = True
@@ -119,16 +134,16 @@ class MCTSNode(object):
         idx = np.random.choice(len(self.actions), p=probabilities, replace=False)
         return self.actions[idx], self.children[idx], probabilities
 
-    def run(self, game_model, estimator, simulations: int):
+    def run(self, env_model: MCTSEnvModel, estimator: MCTSEstimator, simulations: int):
         # Run select, expand and propagate multiple times
         for sim_i in range(simulations):
             # Select target node to expand or terminal node, and get the path edges to target node from this node
-            node, path_nodes, path_edges = self.select(game_model, [], [])
+            node, path_nodes, path_edges = self.select(env_model, [], [])
 
             # If node is not expanded
             if not node.is_expanded:
                 # Expand the node - it will create edges and get value for the node
-                node.expand(game_model, estimator)
+                node.expand(env_model, estimator)
 
             # Update N (visits), W (total value), and Q (average value)
             # for the whole path from this node to target, even if target node is terminal

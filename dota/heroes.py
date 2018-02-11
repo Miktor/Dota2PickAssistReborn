@@ -1,4 +1,3 @@
-import json
 import enum
 
 
@@ -124,39 +123,8 @@ NUM_HEROES = len(Hero)
 assert NUM_HEROES == 115
 
 
-class Lane(enum.IntEnum):
-    NoLane = 0
-    Bot = 1
-    Mid = 2
-    Top = 3
-    RadiantForest = 4
-    DireForest = 5
-    Total = 5
-
-
-class Role(enum.IntEnum):
-    NoRole = 0
-    Carry = 1
-    Support = 2
-    Offlane = 3
-    RadiantForest = 4
-    DireForest = 5
-    Total = 5
-
-
-def get_hero_id(hero_id):
+def get_dota_hero_id(hero_id):
     for idx, e in enumerate(list(Hero)):
         if e.value == hero_id:
             return idx
     raise RuntimeError('No such hero {0}'.format(hero_id))
-
-
-def load_heroes():
-    with open('model/heroes.json', 'r') as f:
-        return json.loads(f.read())
-
-
-#heroes_data = load_heroes()
-
-if __name__ == '__main__':
-    pass
