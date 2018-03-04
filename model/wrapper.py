@@ -1,5 +1,8 @@
 import tensorflow as tf
 
+from typing import List
+
+import numpy as np
 import dota.common as common
 import dota.encoding as encoding
 from model.nn import NNModel, MODEL_PATH
@@ -18,7 +21,17 @@ class ModelWrapper(object):
         self._sess = tf.Session(config=config)
         self._nn = NNModel(self._pick_encoder.encoded_shape, self._game_encoder.encoded_shape, len(common.ACTION_SPACE))
         self._sess.run(tf.global_variables_initializer())
+        self._sess.run(tf.local_variables_initializer())
         self._nn.load_if_exists(self._sess)
+
+    def train_picks(self, matches: List[common.Match]):
+        picks = self._pick_encoder.encode_multiple([x.pick for x in matches])
+        results = np.zeros(shape=[len(matches), 1], dtype=np.float32)
+        for i, match in enumerate(matches):
+            results[i, 0] = match.winning_side
+
+        return self._nn.train_picks(self._sess, 0.5, picks, results)
+
 
     def predict_pick_win(self, pick: common.Pick):
         results = self._nn.predict_win(self._sess, [self._pick_encoder.encode(pick)])
