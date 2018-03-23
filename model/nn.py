@@ -20,7 +20,7 @@ class NNModel(object):
             with tf.variable_scope('Inputs'):
                 self.picks_inputs = tf.placeholder(dtype=tf.float32, shape=(None, ) + pick_shape)
                 self.picks_target_results = tf.placeholder(dtype=tf.float32, shape=(None, 1))
-                self.picks_dropout = tf.placeholder(dtype=tf.float32)
+                # self.picks_dropout = tf.placeholder(dtype=tf.float32)
 
             with tf.variable_scope('Base'):
                 flat_input = tf.contrib.layers.flatten(self.picks_inputs)
@@ -37,15 +37,14 @@ class NNModel(object):
 
             with tf.variable_scope('Head'):
                 self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, 1)
-                self.picks_predictions = tf.nn.softmax(self.picks_logits)
+                self.picks_predictions = tf.cast(self.picks_logits > 0.5, dtype=tf.float32)
 
             with tf.variable_scope('Optimization'):
                 with tf.variable_scope('Loss'):
-                    self.picks_loss = tf.losses.softmax_cross_entropy(self.picks_target_results, self.picks_logits)
+                    self.picks_loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.picks_target_results, logits=self.picks_logits)
 
                 with tf.name_scope('accuracy'):
-                    self.picks_accuracy = tf.reduce_mean(
-                        tf.cast(tf.equal(tf.argmax(self.picks_target_results, 1), tf.argmax(self.picks_logits, 1)), 'float32'))
+                    self.picks_accuracy = tf.reduce_mean(tf.cast(tf.equal(self.picks_target_results, self.picks_predictions), dtype=tf.float32))
 
                 with tf.variable_scope('Optimizer'):
                     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -113,7 +112,7 @@ class NNModel(object):
         loss, accuracy, _, merged_summaries = sess.run(
             [self.picks_loss, self.picks_accuracy, self.picks_optimize_op, self.merged_summaries],
             feed_dict={
-                self.picks_dropout: dropout,
+                # self.picks_dropout: dropout,
                 self.picks_inputs: inputs,
                 self.picks_target_results: results
             })
