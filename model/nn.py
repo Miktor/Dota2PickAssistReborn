@@ -36,12 +36,13 @@ class NNModel(object):
                 hid_exit = hid_2
 
             with tf.variable_scope('Head'):
-                self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, 1)
+                self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, 1, activation_fn=tf.sigmoid)
                 self.picks_predictions = tf.cast(self.picks_logits > 0.5, dtype=tf.float32)
 
             with tf.variable_scope('Optimization'):
                 with tf.variable_scope('Loss'):
-                    self.picks_loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.picks_target_results, logits=self.picks_logits)
+                    self.picks_loss = tf.reduce_mean(self.picks_target_results * tf.log(self.picks_predictions) +
+                        (1.0 - self.picks_target_results) * tf.log(1.0 - self.picks_predictions))
 
                 with tf.name_scope('accuracy'):
                     self.picks_accuracy = tf.reduce_mean(tf.cast(tf.equal(self.picks_target_results, self.picks_predictions), dtype=tf.float32))

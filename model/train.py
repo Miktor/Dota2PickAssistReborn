@@ -47,8 +47,8 @@ def main():
 
         if loss < 0.005:
             print('Loss is {0} @ {1}, finished training'.format(loss, epoch))
-            model.save()
-            break
+            # model.save()
+            # break
 
         epoch += 1
 
