@@ -36,16 +36,29 @@ class NNModel(object):
                 hid_exit = hid_2
 
             with tf.variable_scope('Head'):
-                self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, 1, activation_fn=tf.sigmoid)
-                self.picks_predictions = tf.cast(self.picks_logits > 0.5, dtype=tf.float32)
+                # Win probability
+                #   In range (0, 1) since Fully connected is sigmoid activated
+                #   Radiant probability = self.probability
+                #   Dire probability = 1 - self.probability
+                self.probability = tf.contrib.layers.fully_connected(hid_exit, 1, activation_fn=tf.sigmoid)
+
+                # Predicted side:
+                #   if p > 0.5: radiant
+                #   else: dire
+                self.predicted_side = tf.cast(self.probability > 0.5, dtype=tf.float32)
 
             with tf.variable_scope('Optimization'):
                 with tf.variable_scope('Loss'):
-                    self.picks_loss = tf.reduce_mean(self.picks_target_results * tf.log(self.picks_predictions) +
-                        (1.0 - self.picks_target_results) * tf.log(1.0 - self.picks_predictions))
+                    # Loss:
+                    #   Binary classification loss:
+                    #       L(p, y) = -y log(p) - (1-y) * log(1-p)
+                    #       p - predicted probability (self.probability)
+                    #       y - targets
+                    self.picks_loss = tf.reduce_mean(- self.picks_target_results * tf.log(self.probability)
+                                                     - (1.0 - self.picks_target_results) * tf.log(1.0 - self.probability))
 
                 with tf.name_scope('accuracy'):
-                    self.picks_accuracy = tf.reduce_mean(tf.cast(tf.equal(self.picks_target_results, self.picks_predictions), dtype=tf.float32))
+                    self.picks_accuracy = tf.reduce_mean(tf.cast(tf.equal(self.picks_target_results, self.predicted_side), dtype=tf.float32))
 
                 with tf.variable_scope('Optimizer'):
                     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -54,7 +67,7 @@ class NNModel(object):
             with tf.variable_scope('Stats'):
                 tf.summary.scalar('accuracy', self.picks_accuracy)
                 tf.summary.scalar('cross_entropy_loss', self.picks_loss)
-                auc, auc_op = tf.metrics.auc(predictions=self.picks_predictions, labels=self.picks_target_results)
+                auc, auc_op = tf.metrics.auc(predictions=self.predicted_side, labels=self.picks_target_results)
                 tf.summary.scalar('auc', auc)
 
                 self.merged_summaries = tf.summary.merge_all()
@@ -124,7 +137,7 @@ class NNModel(object):
         return sess.run(self.histograms)
 
     def predict_win(self, sess: tf.Session, inputs):
-        return sess.run([self.picks_predictions], feed_dict={self.picks_inputs: inputs})
+        return sess.run([self.predicted_side], feed_dict={self.picks_inputs: inputs})
 
     def predict_policy_value(self, sess: tf.Session, states):
         return sess.run([self.policy_predictions, self.value], feed_dict={self.policy_states: states})
