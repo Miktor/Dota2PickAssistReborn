@@ -26,9 +26,9 @@ class ModelWrapper(object):
 
     def train_picks(self, matches: List[common.Match]):
         picks = self._pick_encoder.encode_multiple([x.pick for x in matches])
-        results = np.zeros(shape=[len(matches), 1], dtype=np.float32)
+        results = np.zeros(shape=[len(matches), 2], dtype=np.float32)
         for i, match in enumerate(matches):
-            results[i, 0] = match.winning_side
+            results[i, match.winning_side] = 1
 
         return self._nn.train_picks(self._sess, 0.5, picks, results)
 

@@ -19,7 +19,7 @@ class NNModel(object):
         with tf.variable_scope('PickPredictionModel'):
             with tf.variable_scope('Inputs'):
                 self.picks_inputs = tf.placeholder(dtype=tf.float32, shape=(None, ) + pick_shape)
-                self.picks_target_results = tf.placeholder(dtype=tf.float32, shape=(None, 1))
+                self.picks_target_results = tf.placeholder(dtype=tf.float32, shape=(None, 2))
                 # self.picks_dropout = tf.placeholder(dtype=tf.float32)
 
             with tf.variable_scope('Base'):
@@ -36,16 +36,8 @@ class NNModel(object):
                 hid_exit = hid_2
 
             with tf.variable_scope('Head'):
-                # Win probability
-                #   In range (0, 1) since Fully connected is sigmoid activated
-                #   Radiant probability = self.probability
-                #   Dire probability = 1 - self.probability
-                self.probability = tf.contrib.layers.fully_connected(hid_exit, 1, activation_fn=tf.sigmoid)
-
-                # Predicted side:
-                #   if p > 0.5: radiant
-                #   else: dire
-                self.predicted_side = tf.cast(self.probability > 0.5, dtype=tf.float32)
+                self.picks_logits = tf.contrib.layers.fully_connected(hid_exit, 2)
+                self.picks_predictions = tf.nn.softmax(self.picks_logits)
 
             with tf.variable_scope('Optimization'):
                 with tf.variable_scope('Loss'):
@@ -54,11 +46,10 @@ class NNModel(object):
                     #       L(p, y) = -y log(p) - (1-y) * log(1-p)
                     #       p - predicted probability (self.probability)
                     #       y - targets
-                    self.picks_loss = tf.reduce_mean(- self.picks_target_results * tf.log(self.probability)
-                                                     - (1.0 - self.picks_target_results) * tf.log(1.0 - self.probability))
+                    self.picks_loss = tf.losses.softmax_cross_entropy(self.picks_target_results, self.picks_logits)
 
                 with tf.name_scope('accuracy'):
-                    self.picks_accuracy = tf.reduce_mean(tf.cast(tf.equal(self.picks_target_results, self.predicted_side), dtype=tf.float32))
+                    self.picks_accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(self.picks_target_results, 1), tf.argmax(self.picks_logits, 1)), 'float32'))
 
                 with tf.variable_scope('Optimizer'):
                     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -67,7 +58,7 @@ class NNModel(object):
             with tf.variable_scope('Stats'):
                 tf.summary.scalar('accuracy', self.picks_accuracy)
                 tf.summary.scalar('cross_entropy_loss', self.picks_loss)
-                auc, auc_op = tf.metrics.auc(predictions=self.predicted_side, labels=self.picks_target_results)
+                auc, auc_op = tf.metrics.auc(predictions=self.picks_predictions, labels=self.picks_target_results)
                 tf.summary.scalar('auc', auc)
 
                 self.merged_summaries = tf.summary.merge_all()
