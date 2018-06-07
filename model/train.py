@@ -5,7 +5,8 @@ import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
 
-from model.wrapper import ModelWrapper
+#from model.wrapper import ModelWrapper
+from model.keras_wrapper import KerasModelWrapper
 from dota.json import *
 
 PACKED_FILE = 'data/packed.json'
@@ -17,16 +18,14 @@ def test_prediction(sess, model, picks_test, results_test):
     print(model.calc_metrics(sess))
 
 
-
-def main():
+def tf_main():
     matches = matches_from_json_file(PACKED_FILE)
     model = ModelWrapper()
 
     timestamp = datetime.datetime.now().strftime('%d-%m-%Y %H-%M')
-    train_writer = tf.summary.FileWriter(
-        os.path.join('C:\\Development\\logs', timestamp), graph=tf.get_default_graph())
+    train_writer = tf.summary.FileWriter(os.path.join('C:\\Development\\logs', timestamp), graph=tf.get_default_graph())
 
-    matches_train, matches_test = train_test_split(matches, train_size=0.8, random_state=13)
+    matches_train, matches_test = train_test_split(matches, train_size=0.1, random_state=13)
 
     epoch = 0
     total_match_count = len(matches_train)
@@ -56,5 +55,14 @@ def main():
     # test_prediction(sess, model, x_test, y_test)
 
 
+def keras_main():
+    matches = matches_from_json_file(PACKED_FILE)
+    model = KerasModelWrapper()
+
+    matches_train, matches_test = train_test_split(matches, train_size=0.1, random_state=13)
+
+    model.train_picks(matches_train)
+
+
 if __name__ == '__main__':
-    main()
+    keras_main()

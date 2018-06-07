@@ -7,10 +7,8 @@ L2_BETA = 0.001
 
 
 class NNModel(object):
-    def __init__(self,
-                 pick_shape: tuple,
-                 pick_game_shape: tuple,
-                 pick_game_num_actions: int):
+
+    def __init__(self, pick_shape: tuple, pick_game_shape: tuple, pick_game_num_actions: int):
         self.histograms = []
 
         self.metrics_array = {}
@@ -18,7 +16,7 @@ class NNModel(object):
 
         with tf.variable_scope('PickPredictionModel'):
             with tf.variable_scope('Inputs'):
-                self.picks_inputs = tf.placeholder(dtype=tf.float32, shape=(None, ) + pick_shape)
+                self.picks_inputs = tf.placeholder(dtype=tf.float32, shape=(None,) + pick_shape)
                 self.picks_target_results = tf.placeholder(dtype=tf.float32, shape=(None, 1))
                 # self.picks_dropout = tf.placeholder(dtype=tf.float32)
 
@@ -54,15 +52,17 @@ class NNModel(object):
                     #       L(p, y) = -y log(p) - (1-y) * log(1-p)
                     #       p - predicted probability (self.probability)
                     #       y - targets
-                    self.picks_loss = tf.reduce_mean(- self.picks_target_results * tf.log(self.probability)
-                                                     - (1.0 - self.picks_target_results) * tf.log(1.0 - self.probability))
+                    self.picks_loss = tf.reduce_mean(-self.picks_target_results * tf.log(self.probability) -
+                                                     (1.0 - self.picks_target_results) * tf.log(1.0 - self.probability))
 
                 with tf.name_scope('accuracy'):
-                    self.picks_accuracy = tf.reduce_mean(tf.cast(tf.equal(self.picks_target_results, self.predicted_side), dtype=tf.float32))
+                    self.picks_accuracy = tf.reduce_mean(
+                        tf.cast(tf.equal(self.picks_target_results, self.predicted_side), dtype=tf.float32))
 
                 with tf.variable_scope('Optimizer'):
                     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
-                    self.picks_optimize_op = optimizer.minimize(self.picks_loss, var_list=tf.trainable_variables('PickPredictionModel'))
+                    self.picks_optimize_op = optimizer.minimize(
+                        self.picks_loss, var_list=tf.trainable_variables('PickPredictionModel'))
 
             with tf.variable_scope('Stats'):
                 tf.summary.scalar('accuracy', self.picks_accuracy)
@@ -80,7 +80,7 @@ class NNModel(object):
 
         with tf.variable_scope('GraphPredictionModel'):
             with tf.variable_scope('Inputs'):
-                self.policy_states = tf.placeholder(dtype=tf.float32, shape=(None, ) + pick_game_shape)
+                self.policy_states = tf.placeholder(dtype=tf.float32, shape=(None,) + pick_game_shape)
                 self.policy_target_results = tf.placeholder(dtype=tf.float32, shape=(None, pick_game_num_actions))
                 self.policy_dropout = tf.placeholder(dtype=tf.float32)
 
@@ -113,7 +113,9 @@ class NNModel(object):
 
                 with tf.name_scope('accuracy'):
                     self.policy_accuracy = tf.reduce_mean(
-                            tf.cast(tf.equal(tf.argmax(self.policy_target_results, 1), tf.argmax(self.policy_logits, 1)), 'float32'))
+                        tf.cast(
+                            tf.equal(tf.argmax(self.policy_target_results, 1), tf.argmax(self.policy_logits, 1)),
+                            'float32'))
 
                 with tf.variable_scope('Optimizer'):
                     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -180,3 +182,7 @@ class NNModel(object):
                 self.load(sess, path)
         except Exception as e:
             print('Failed to load! {}'.format(e))
+
+
+if __name__ == '__main__':
+    pass
