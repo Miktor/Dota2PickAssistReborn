@@ -19,16 +19,9 @@ class KerasModel(object):
         model.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-4), metrics=['accuracy'])
         self.model = model
 
-    def train(self, picks, results, max_epochs=1000):
-        callbacks = [
-            keras.callbacks.EarlyStopping(monitor='val_loss', patience=20),
-            keras.callbacks.TerminateOnNaN()
-        ]
-        self.model.fit(picks, results,
-                       batch_size=BATCH_SIZE,
-                       epochs=max_epochs,
-                       validation_split=0.2,
-                       callbacks=callbacks)
+    def train(self, picks, results, validation_picks, validation_results, max_epochs=1000):
+        callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', patience=20), keras.callbacks.TerminateOnNaN()]
+        self.model.fit(picks, results, batch_size=BATCH_SIZE, epochs=max_epochs, callbacks=callbacks, validation_data=(validation_picks, validation_results))
 
     def predict(self, inputs):
         return self.model.predict(inputs)

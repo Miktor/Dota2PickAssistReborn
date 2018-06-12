@@ -17,13 +17,18 @@ class KerasModelWrapper(object):
         self._nn = KerasModel(self._pick_encoder.encoded_shape, self._game_encoder.encoded_shape,
                               len(common.ACTION_SPACE))
 
-    def train_picks(self, matches: List[common.Match]):
+    def train_picks(self, matches: List[common.Match], test_matches: List[common.Match]):
         picks = self._pick_encoder.encode_multiple([x.pick for x in matches])
         results = np.zeros(shape=[len(matches), 1], dtype=np.float32)
         for i, match in enumerate(matches):
             results[i, 0] = match.winning_side
 
-        return self._nn.train(picks, results)
+        test_picks = self._pick_encoder.encode_multiple([x.pick for x in test_matches])
+        test_results = np.zeros(shape=[len(test_matches), 1], dtype=np.float32)
+        for i, match in enumerate(test_matches):
+            test_results[i, 0] = match.winning_side
+
+        return self._nn.train(picks, results, test_picks, test_results)
 
     def predict_pick_win(self, pick: common.Pick):
         results = self._nn.predict([self._pick_encoder.encode(pick)])

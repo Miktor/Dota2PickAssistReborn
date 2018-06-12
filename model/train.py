@@ -59,9 +59,9 @@ def keras_main():
     matches = matches_from_json_file(PACKED_FILE)
     model = KerasModelWrapper()
 
-    matches_train, matches_test = train_test_split(matches, train_size=0.1, random_state=13)
+    matches_train, matches_test = train_test_split(matches, train_size=0.8, random_state=13)
 
-    model.train_picks(matches_train)
+    model.train_picks(matches_train, matches_test)
 
 
 if __name__ == '__main__':
