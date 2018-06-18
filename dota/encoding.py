@@ -28,18 +28,22 @@ class Encoder(object):
 
 class PickEncoder(Encoder):
     def __init__(self):
-        super().__init__((NUM_HEROES * 3, ))
+        super().__init__((NUM_HEROES * (1 + Role.Count + Lane.Count), ))
 
     def encode(self, pick: Pick) -> np.ndarray:
         data = np.zeros(self.encoded_shape, dtype=np.float32)
+
         for picked_hero in pick.radiant:
-            data[get_hero_index(picked_hero.hero) * 3] = 1.0
-            data[get_hero_index(picked_hero.hero) * 3 + 1] = picked_hero.lane
-            data[get_hero_index(picked_hero.hero) * 3 + 2] = picked_hero.role
+            startIndex = get_hero_index(picked_hero.hero) * (1 + Role.Count + Lane.Count)
+            data[startIndex] = 1.0
+            data[startIndex + 1 + picked_hero.lane] = 1.0
+            data[startIndex + 1 + Lane.Count + picked_hero.role] = 1.0
         for picked_hero in pick.dire:
-            data[get_hero_index(picked_hero.hero) * 3] = -1.0
-            data[get_hero_index(picked_hero.hero) * 3 + 1] = picked_hero.lane
-            data[get_hero_index(picked_hero.hero) * 3 + 2] = picked_hero.role
+            startIndex = get_hero_index(picked_hero.hero) * (1 + Role.Count + Lane.Count)
+            data[startIndex] = -1.0
+            data[startIndex + 1 + picked_hero.lane] = 1.0
+            data[startIndex + 1 + Lane.Count + picked_hero.role] = 1.0
+
 
         return data
 

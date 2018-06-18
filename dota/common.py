@@ -10,21 +10,21 @@ class Side(enum.IntEnum):
 
 
 class Lane(enum.IntEnum):
-    NoLane = 0
-    Bot = 1
-    Mid = 2
-    Top = 3
-    RadiantForest = 4
-    DireForest = 5
+    Bot = 0
+    Mid = 1
+    Top = 2
+    RadiantForest = 3
+    DireForest = 4
+    Count = 5
 
 
 class Role(enum.IntEnum):
-    NoRole = 0
-    Carry = 1
-    Support = 2
-    Offlane = 3
-    RadiantForest = 4
-    DireForest = 5
+    Carry = 0
+    Support = 1
+    Offlane = 2
+    RadiantForest = 3
+    DireForest = 4
+    Count = 5
 
 
 class PickPhase(enum.IntEnum):
@@ -35,19 +35,13 @@ class PickPhase(enum.IntEnum):
 
 
 class PickedHero(object):
-    def __init__(self, hero: Hero, lane=Lane.NoLane, role=Role.NoRole):
+    def __init__(self, hero: Hero, lane: Lane, role: Role):
         self.hero = hero
         self.lane = lane
         self.role = role
 
     def __str__(self):
-        if self.lane is not Lane.NoLane and self.role is not Role.NoRole:
-            return '{0} ({1}, {2})'.format(self.hero.name, self.lane.name, self.role.name)
-        elif self.lane is not Lane.NoLane:
-            return '{0} ({1})'.format(self.hero.name, self.lane.name)
-        elif self.role is not Role.NoRole:
-            return '{0} ({1})'.format(self.hero.name, self.role.name)
-        return self.hero.name
+        return '{0} ({1}, {2})'.format(self.hero.name, self.lane.name, self.role.name)
 
 
 class Pick(object):
@@ -182,9 +176,9 @@ class BanAction(Action):
         return 'Action[Ban]: {0}'.format(self.hero.name)
 
 
-ACTIONS_PICK = [PickAction(PickedHero(hero)) for hero in Hero]
-ACTIONS_BAN = [BanAction(hero) for hero in Hero]
-ACTION_SPACE = ACTIONS_PICK + ACTIONS_BAN
+## ACTIONS_PICK = [PickAction(PickedHero(hero)) for hero in Hero]
+## ACTIONS_BAN = [BanAction(hero) for hero in Hero]
+## ACTION_SPACE = ACTIONS_PICK + ACTIONS_BAN
 
 
 class PickGame(object):

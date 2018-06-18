@@ -7,13 +7,12 @@ BATCH_SIZE = 32
 
 class KerasModel(object):
 
-    def __init__(self, pick_shape: tuple, pick_game_shape: tuple, pick_game_num_actions: int):
+    def __init__(self, sess, pick_shape: tuple, pick_game_shape: tuple, pick_game_num_actions: int):
 
+        keras.backend.set_session(sess)
         model = keras.Sequential()
         model.add(Dense(512, activation='relu', input_shape=(pick_shape[0],)))
-        model.add(Dropout(0.5))
         model.add(Dense(512, activation='relu'))
-        model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
 
         model.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-4), metrics=['accuracy'])

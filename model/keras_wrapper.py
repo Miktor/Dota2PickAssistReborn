@@ -1,5 +1,6 @@
 from typing import List
 
+from tensorflow import ConfigProto, Session
 import numpy as np
 import dota.common as common
 import dota.encoding as encoding
@@ -14,8 +15,12 @@ class KerasModelWrapper(object):
         self._pick_encoder = pick_encoder
         self._game_encoder = game_encoder
 
-        self._nn = KerasModel(self._pick_encoder.encoded_shape, self._game_encoder.encoded_shape,
-                              len(common.ACTION_SPACE))
+        config = ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = 0.4
+        self._sess = Session(config=config)
+
+        self._nn = KerasModel(self._sess, self._pick_encoder.encoded_shape, self._game_encoder.encoded_shape, 0)
 
     def train_picks(self, matches: List[common.Match], test_matches: List[common.Match]):
         picks = self._pick_encoder.encode_multiple([x.pick for x in matches])
