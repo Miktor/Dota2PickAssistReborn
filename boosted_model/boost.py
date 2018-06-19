@@ -3,13 +3,12 @@ import xgboost as xgb
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import dump_svmlight_file
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import *
 
 
 PACKED_FILE = 'data\\learn.txt'
 
 X, y = datasets.load_svmlight_file(PACKED_FILE, dtype=np.float32)
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # use DMatrix for xgbosot
@@ -25,8 +24,10 @@ dtest_svm = xgb.DMatrix('boosted_model/dtest.svm')
 # set xgboost params
 param = {
     'max_depth': 5,  # the maximum depth of each tree
-    'eta': 0.3,  # the training step for each iteration
-    'silent': 1,  # logging mode - quiet
+    'eta': 1,  # the training step for each iteration
+    'gamma': 1.0, # minimum loss reduction required to make a further partition
+    'min_child_weight': 1.0, # minimum sum of instance weight(hessian) needed in a child
+    'silent': 0,  # logging mode - quiet
     'objective': 'binary:logistic',  # error evaluation for multiclass training
     'num_class': 1}  # the number of classes that exist in this datset
 num_round = 20  # the number of training iterations
@@ -36,8 +37,12 @@ num_round = 20  # the number of training iterations
 bst = xgb.train(param, dtrain, num_round)
 preds = bst.predict(dtest)
 
-accuracy = accuracy_score(y_test, preds)
+accuracy = accuracy_score(y_test, preds.round())
 print("Accuracy: %.2f%%" % (accuracy * 100.0))
+prec = average_precision_score(y_test, preds)
+print("Precision: %.2f%%" % (prec * 100.0))
+roc_auc_score(y_test, preds)
+print("ROC AUC: %.2f%%" % (prec * 100.0))
 # # extracting most confident predictions
 # best_preds = np.asarray([np.argmax(line) for line in preds])
 # print("Numpy array precision:", precision_score(y_test, best_preds, average='varloss'))
