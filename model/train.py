@@ -6,6 +6,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 #from model.wrapper import ModelWrapper
+from model.rf_wrapper import RFWrapper
 from model.keras_wrapper import KerasModelWrapper
 from dota.json import *
 
@@ -52,7 +53,15 @@ def tf_main():
         epoch += 1
 
     # print(model.evaluate(sess, x_test, y_test))
-    # test_prediction(sess, model, x_test, y_test)
+    # test_prediction
+
+def rf_main():
+    matches = matches_from_json_file(PACKED_FILE)
+    model = RFWrapper()
+
+    matches_train, matches_test = train_test_split(matches, train_size=0.8, random_state=13)
+
+    model.train_picks(matches_train, matches_test)
 
 
 def keras_main():
@@ -65,4 +74,4 @@ def keras_main():
 
 
 if __name__ == '__main__':
-    keras_main()
+    rf_main()
