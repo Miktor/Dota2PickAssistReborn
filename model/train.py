@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 #from model.wrapper import ModelWrapper
 from model.rf_wrapper import RFWrapper
 from model.keras_wrapper import KerasModelWrapper
-from dota.json import *
+from dota.json import matches_from_json_file
 
 PACKED_FILE = 'data/packed.json'
 BATCH_SIZE = 64
