@@ -111,3 +111,4 @@ packed.json
 !data/packed.json
 
 trained-model/
+*.svm
