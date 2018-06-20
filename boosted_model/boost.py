@@ -23,14 +23,14 @@ dtest_svm = xgb.DMatrix('boosted_model/dtest.svm')
 
 # set xgboost params
 param = {
-    'max_depth': 5,  # the maximum depth of each tree
-    'eta': 1,  # the training step for each iteration
+    'max_depth': 7,  # the maximum depth of each tree
+    'eta': 0.1,  # the training step for each iteration
     'gamma': 1.0, # minimum loss reduction required to make a further partition
-    'min_child_weight': 1.0, # minimum sum of instance weight(hessian) needed in a child
     'silent': 0,  # logging mode - quiet
-    'objective': 'binary:logistic',  # error evaluation for multiclass training
-    'num_class': 1}  # the number of classes that exist in this datset
-num_round = 20  # the number of training iterations
+    'nthread': 4,
+    'objective': 'multi:softmax',  # error evaluation for multiclass training
+    'num_class': 2}  # the number of classes that exist in this datset
+num_round = 100  # the number of training iterations
 
 #------------- numpy array ------------------
 # training and testing - numpy matrices

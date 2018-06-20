@@ -17,9 +17,9 @@ class Exporter(object):
 
     def convert(self, matches: List[Match]):
         picks = self._pick_encoder.encode_multiple([x.pick for x in matches])
-        results = np.zeros(shape=[len(matches), 1], dtype=np.float32)
+        results = np.zeros(shape=[len(matches), 2], dtype=np.float32)
         for i, match in enumerate(matches):
-            results[i, 0] = match.winning_side
+            results[i, match.winning_side] = 1
         return picks, results
 
 
@@ -27,5 +27,4 @@ if __name__ == '__main__':
     matches = matches_from_json_file(PACKED_FILE)
     export = Exporter()
     picks, results = export.convert(matches)
-    results = np.reshape(results, (results.shape[0], ))
-    dump_svmlight_file(picks, results, 'data\\learn.txt')
+    dump_svmlight_file(picks, results, 'data\\learn.txt', multilabel=True)

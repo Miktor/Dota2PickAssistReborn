@@ -1,7 +1,11 @@
 from typing import List
 import json
 import dota.common as common
-
+import pandas as pd
+import numpy as np
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.cross_validation import cross_val_score
 
 def picked_hero_from_json(json_obj: dict) -> common.PickedHero:
     hero = common.Hero(json_obj['hero_id'])
@@ -44,3 +48,14 @@ def matches_from_json_file(path: str) -> List[common.Match]:
     with open(path, 'r') as f:
         data = json.loads(f.read())
         return matches_from_json(data)
+
+def matches_from_csv_file(path: str):
+    dataset = pd.read_csv(path, index_col=0)
+    dataset = dataset.take(np.random.permutation(len(dataset)))
+
+    x = dataset.drop('radiant_win', axis=1)
+    y = dataset['radiant_win']
+
+    print('Logistic Regression accuracy:', np.mean(cross_val_score(LogisticRegression(), x, y, scoring='accuracy', cv = 2)))
+    print('MultinominalNB accuracy:', np.mean(cross_val_score(MultinomialNB(), x, y, scoring='accuracy', cv = 2)))
+    return dataset

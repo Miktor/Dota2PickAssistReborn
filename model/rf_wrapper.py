@@ -1,9 +1,6 @@
 from typing import List
 
 import numpy as np
-from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 import dota.common as common
 import dota.encoding as encoding
 from model.random_forest import RFModel
@@ -29,6 +26,11 @@ class RFWrapper(object):
         for i, match in enumerate(test_matches):
             test_results[i, 0] = match.winning_side
 
+        return self.train_picks_raw(picks, results, test_picks, test_results)
+
+    def train_picks_raw(self, picks, results, test_picks, test_results):
+        results = np.reshape(results.values[:,:1], (results.values.shape[0]))
+        test_results = np.reshape(test_results.values[:,:1], (test_results.values.shape[0]))
         return self._nn.train_picks(picks, results, test_picks, test_results)
 
 

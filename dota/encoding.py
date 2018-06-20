@@ -17,31 +17,31 @@ class Encoder(object):
         raise NotImplementedError
 
     def encode_multiple(self, collection: List[object]) -> np.ndarray:
-        data = np.empty((len(collection), ) + self.encoded_shape, dtype=self.encoded_dtype)
+        data_r = np.empty((len(collection), ) + self.encoded_shape, dtype=self.encoded_dtype)
+        data_d = np.empty((len(collection), ) + self.encoded_shape, dtype=self.encoded_dtype)
         for i, item in enumerate(collection):
-            data[i] = self.encode(item)
-        return data
+            data_r[i] = self.encode(item)
+        return data_r
 
     def decode(self, data: np.ndarray) -> object:
         raise NotImplementedError
 
-
+CLASSES_PER_HERO = 108
 class PickEncoder(Encoder):
     def __init__(self):
-        super().__init__((NUM_HEROES, ))
+        super().__init__((CLASSES_PER_HERO, ))
 
-    def encode(self, pick: Pick) -> np.ndarray:
-        data = np.zeros(self.encoded_shape, dtype=np.float32)
+    def encode(self, pick: Pick) -> (np.ndarray, np.ndarray):
+        data_rad = np.zeros(self.encoded_shape, dtype=np.float32)
 
         for picked_hero in pick.radiant:
             startIndex = get_hero_index(picked_hero.hero)
-            data[startIndex] = 1.0
+            data_rad[startIndex] = 1.0
         for picked_hero in pick.dire:
             startIndex = get_hero_index(picked_hero.hero)
-            data[startIndex] = -1.0
+            data_rad[CLASSES_PER_HERO + startIndex] = 1.0
 
-
-        return data
+        return data_rad
 
     def decode(self, data: np.ndarray) -> Pick:
         # TODO: Implement

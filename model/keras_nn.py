@@ -1,6 +1,8 @@
-import keras
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, Input, concatenate
+from keras.models import Model
 from keras.optimizers import Adam
+from keras import backend
+from keras.callbacks import EarlyStopping, TerminateOnNaN
 
 BATCH_SIZE = 256
 
@@ -9,18 +11,35 @@ class KerasModel(object):
 
     def __init__(self, sess, pick_shape: tuple, pick_game_shape: tuple, pick_game_num_actions: int):
 
-        keras.backend.set_session(sess)
-        model = keras.Sequential()
-        model.add(Dense(2048, activation='relu', input_shape=(pick_shape[0],)))
-        model.add(Dense(2048, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
+        backend.set_session(sess)
 
-        model.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-4), metrics=['accuracy'])
-        self.model = model
+        radiant_heroes = Input(shape=(pick_shape[0],), name='radiant_heroes')
+        dire_heroes = Input(shape=(pick_shape[0],), name='dire_heroes')
+
+        r1 = Dense(256, activation='relu')(radiant_heroes)
+        d1 = Dense(256, activation='relu')(dire_heroes)
+
+        rd = concatenate([r1, d1])
+        x = Dense(512, activation='relu')(rd)
+        x = Dense(512, activation='relu')(x)
+
+        output = Dense(2, activation='softmax', name='output')(x)
+
+        self.model = Model(inputs=[radiant_heroes, dire_heroes], outputs=[output])
+        self.model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=1e-4), metrics=['accuracy'])
 
     def train(self, picks, results, validation_picks, validation_results, max_epochs=1000):
-        callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', patience=20), keras.callbacks.TerminateOnNaN()]
-        self.model.fit(picks, results, batch_size=BATCH_SIZE, epochs=max_epochs, callbacks=callbacks, validation_data=(validation_picks, validation_results))
+        callbacks = [EarlyStopping(monitor='val_loss', patience=20), TerminateOnNaN()]
+        self.model.fit(
+                {'radiant_heroes': picks[0], 'dire_heroes': picks[1]},
+                results,
+                batch_size=BATCH_SIZE,
+                epochs=max_epochs,
+                callbacks=callbacks,
+                validation_data=(
+                    {'radiant_heroes': validation_picks[0], 'dire_heroes': validation_picks[1]},
+                    validation_results))
+
 
     def predict(self, inputs):
         return self.model.predict(inputs)
